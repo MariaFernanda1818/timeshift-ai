@@ -1,0 +1,17 @@
+[build-system]
+requires = ["setuptools>=68", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "counterfactual-decision-gate"
+version = "0.1.0"
+description = "Reusable Strands Decider 2B guardrail: gate agent actions on evidence grounding and counterfactual outcomes."
+license = "MIT"
+requires-python = ">=3.10"
+dependencies = ["pydantic>=2.7"]
+
+[project.optional-dependencies]
+strands = ["strands-agents>=1.61"]
+
+[tool.setuptools.packages.find]
+where = ["src"]
