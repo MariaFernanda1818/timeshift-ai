@@ -1,6 +1,7 @@
 """The deterministic numeric-claim check used on Bedrock explanations (no model needed)."""
 
 from test_mission import mission, prop
+
 from timeshift.explain import evidence_packet, unsupported_claims
 
 

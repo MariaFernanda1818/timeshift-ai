@@ -3,6 +3,7 @@
 import dataclasses
 
 import pytest
+
 from timeshift.sim.actions import Action, apply_action, validate_action
 from timeshift.sim.fork import fork_reality
 from timeshift.sim.model import ModuleStatus

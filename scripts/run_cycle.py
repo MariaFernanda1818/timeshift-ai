@@ -15,6 +15,7 @@ import sys
 import time
 
 from counterfactual_decision_gate import CounterfactualDecisionGate, DeciderClient, DeciderError
+
 from timeshift.fixtures import FIXTURE_PROPOSALS
 from timeshift.mission import Mission, Proposal
 
@@ -26,6 +27,8 @@ def main() -> int:
     ap.add_argument("--advance-after", type=int, default=12,
                     help="ticks to advance the canonical timeline after the decision")
     ap.add_argument("--out", default=None)
+    ap.add_argument("--escalation", choices=["none", "bedrock"], default="none",
+                    help="send only Decider's REVIEW band to the Bedrock judge")
     a = ap.parse_args()
 
     client = DeciderClient(timeout_s=600, retries=0)
@@ -35,7 +38,16 @@ def main() -> int:
         print(f"Decider unavailable: {exc}", file=sys.stderr)
         return 2
     print(f"Decider: {h['checkpoint']} on {h['device']}")
-    m = Mission.from_scenario(a.scenario, a.seed, CounterfactualDecisionGate(client))
+    escalate = None
+    if a.escalation == "bedrock":
+        from counterfactual_decision_gate import Thresholds
+
+        from timeshift.judge import BedrockJudge
+
+        th = Thresholds()
+        escalate = BedrockJudge().escalation(th.proceed_at, th.deny_below)
+    m = Mission.from_scenario(a.scenario, a.seed,
+                              CounterfactualDecisionGate(client, escalate=escalate))
     m.emit("agent.proposals", {"proposer": "fixture", "proposals": FIXTURE_PROPOSALS[a.scenario]})
     props = [Proposal(**p, based_on_revision=0, based_on_tick=0)
              for p in FIXTURE_PROPOSALS[a.scenario]]
@@ -47,7 +59,7 @@ def main() -> int:
         v = d["answers"].get("verdict", {})
         print(f"  {d['action']:<55} grounded={g} verdict_q={v.get('value')} "
               f"-> {d['verdict']}  ({d['decider_latency_ms']} ms, "
-              f"{d['decider_input_tokens']} tok) {d['reasons'][0][:90]}")
+              f"{d['decider_input_tokens']} tok) {d['reasons'][-1][:90]}")
     if a.advance_after:
         m.advance(a.advance_after)
     print(f"cycle wall time {time.perf_counter() - t0:.1f}s; final tick {m.state.tick}, "

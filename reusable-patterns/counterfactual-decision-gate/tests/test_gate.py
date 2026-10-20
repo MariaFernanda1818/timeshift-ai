@@ -124,3 +124,51 @@ def test_render_state_marks_trust_and_lists_cited_evidence():
     assert "[E1] (TRUSTED" in text and "[R1] (UNVERIFIED, chat" in text
     assert "CITED EVIDENCE: E1" in text
     assert json.dumps({"service": "api"}) in text
+
+
+# ---- optional REVIEW-band escalation -------------------------------------------------
+
+def _escalator(verdict="PROCEED", exc=None):
+    calls = []
+
+    def esc(req, state):
+        calls.append(state)
+        if exc:
+            raise exc
+        return {"verdict": verdict, "judge": "TEST-DOUBLE"}
+    return esc, calls
+
+
+def test_escalation_resolves_review_band():
+    esc, calls = _escalator("DENY")
+    d = CounterfactualDecisionGate(ScriptedClient(0.55), escalate=esc).evaluate(req())
+    assert d.verdict == Verdict.DENY and len(calls) == 1
+    assert d.escalation == {"verdict": "DENY", "judge": "TEST-DOUBLE"}
+
+
+def test_escalation_not_used_outside_review_band():
+    esc, calls = _escalator()
+    for g in (0.95, 0.10):
+        CounterfactualDecisionGate(ScriptedClient(g), escalate=esc).evaluate(req())
+    assert calls == []
+
+
+def test_escalation_never_replaces_a_failed_decider():
+    esc, calls = _escalator("PROCEED")
+    d = CounterfactualDecisionGate(ScriptedClient(exc=DeciderUnavailable("down")),
+                                   escalate=esc).evaluate(req())
+    assert d.verdict == Verdict.DENY and calls == []
+
+
+def test_escalation_never_overrides_hard_violations():
+    esc, calls = _escalator("PROCEED")
+    d = CounterfactualDecisionGate(ScriptedClient(0.55), escalate=esc,
+                                   hard_checks=lambda r: ["bad"],
+                                   ask_on_hard_violation=True).evaluate(req())
+    assert d.verdict == Verdict.DENY and calls == []
+
+
+def test_escalation_failure_keeps_review():
+    esc, _ = _escalator(exc=RuntimeError("throttled"))
+    d = CounterfactualDecisionGate(ScriptedClient(0.55), escalate=esc).evaluate(req())
+    assert d.verdict == Verdict.REVIEW and "error" in d.escalation

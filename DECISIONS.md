@@ -90,3 +90,12 @@ cases, so it is kept for audit only and can only escalate a confident `deny`. Th
 `proceed_at = 0.89` (chosen on calib; eval: 2 wrong commits / 1 wrong block / 11 REVIEW).
 **Open decision for the owner:** use the calibrated threshold for the demo. The signature run's B1
 (0.885) then becomes REVIEW, so a human Confirm is needed before the commit. 2026-10-18.
+
+### D16 — Benchmark outcome changes the recommended configuration (2026-10-20)
+On 30 held-out cases, the Bedrock LLM judge (B, 0.967) beat Decider alone (C calibrated, 0.933 with
+14 human reviews). An offline cascade over the recorded data (Decider first, band [0.68, 0.90) →
+LLM judge) scored 30/30 with 9 of 21 semantic cases escalated. We kept Decider as the primary gate
+(local, no per-call cost, typed probabilities, fail-closed) and added an **optional** REVIEW-band
+escalation (`escalate=` in the pattern, `TIMESHIFT_ESCALATION=bedrock` in the app). Invariants:
+escalation is never used when Decider failed or a hard check failed, and an escalation failure keeps
+REVIEW. The live check is pending (AWS session expired).

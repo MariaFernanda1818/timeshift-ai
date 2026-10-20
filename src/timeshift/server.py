@@ -82,7 +82,13 @@ def scenarios() -> list[dict[str, Any]]:
 def start_mission(req: StartMission) -> dict[str, str]:
     if req.scenario not in SCENARIOS:
         raise HTTPException(404, f"unknown scenario {req.scenario}")
-    gate = CounterfactualDecisionGate(decider_client(), thresholds())
+    th = thresholds()
+    escalate = None
+    if os.environ.get("TIMESHIFT_ESCALATION") == "bedrock":
+        from .judge import BedrockJudge
+
+        escalate = BedrockJudge().escalation(th.proceed_at, th.deny_below)
+    gate = CounterfactualDecisionGate(decider_client(), th, escalate=escalate)
     m = Mission.from_scenario(req.scenario, req.seed, gate)
     mid = uuid.uuid4().hex[:10]
     MISSIONS[mid] = m

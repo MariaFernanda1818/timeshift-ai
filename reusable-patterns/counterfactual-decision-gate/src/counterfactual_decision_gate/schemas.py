@@ -84,6 +84,8 @@ class GateDecision(BaseModel):
     decider_input_tokens: int | None = None
     wall_latency_ms: float | None = None
     decider_status: str = "ok"            # ok | unavailable | timeout | malformed | skipped
+    # Optional second opinion for the REVIEW band only (see CounterfactualDecisionGate.escalate).
+    escalation: dict[str, Any] | None = None
     thresholds: Thresholds = Field(default_factory=Thresholds)
     questions: dict[str, dict[str, Any]] = Field(default_factory=dict)
     state_text: str = ""

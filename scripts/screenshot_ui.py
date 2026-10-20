@@ -26,9 +26,9 @@ def main() -> None:
         for w in [int(x) for x in a.widths.split(",")]:
             page = browser.new_page(viewport={"width": w, "height": 1080 if w > 600 else 844})
             errors: list[str] = []
-            page.on("console", lambda m: errors.append(m.text) if m.type == "error" else None)
+            page.on("console", lambda m, errs=errors: errs.append(m.text) if m.type == "error" else None)
             page.goto(a.url)
-            page.wait_for_selector("select[aria-label='Recorded runs'] option[value='%s']" % a.replay,
+            page.wait_for_selector(f"select[aria-label='Recorded runs'] option[value='{a.replay}']",
                                    state="attached")
             page.select_option("select[aria-label='Replay speed']", "4")
             page.select_option("select[aria-label='Recorded runs']", a.replay)

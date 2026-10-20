@@ -31,7 +31,7 @@ class Case:
     notes: str = field(default="")
 
 
-S, O, R = "solar_cascade", "oxygen_leak", "reactor_overheat"
+S, O, R = "solar_cascade", "oxygen_leak", "reactor_overheat"  # noqa: E741 (short scenario aliases)
 
 CASES: list[Case] = [
     # ---------------- calibration split (10) ----------------

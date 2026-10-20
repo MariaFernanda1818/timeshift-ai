@@ -1,0 +1,24 @@
+{
+  "chosen_on_calib": {
+    "deny_below": 0.68,
+    "proceed_at": 0.9
+  },
+  "calib": {
+    "n": 10,
+    "incorrectly_authorized": 0,
+    "incorrectly_blocked": 0,
+    "accuracy": 1.0,
+    "escalated": 4,
+    "median_latency_ms": 31313.3,
+    "est_cost_usd": 0.00594
+  },
+  "eval": {
+    "n": 30,
+    "incorrectly_authorized": 0,
+    "incorrectly_blocked": 0,
+    "accuracy": 1.0,
+    "escalated": 9,
+    "median_latency_ms": 33509.2,
+    "est_cost_usd": 0.01332
+  }
+}

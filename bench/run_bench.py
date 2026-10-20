@@ -16,7 +16,6 @@ import argparse
 import json
 import os
 import pathlib
-import re
 import sys
 import time
 from typing import Any
@@ -26,25 +25,15 @@ import psutil
 sys.path.insert(0, str(pathlib.Path(__file__).resolve().parent))
 from cases import CASES, Case  # noqa: E402
 from counterfactual_decision_gate import (  # noqa: E402
+    EVIDENCE_GROUNDED,
     CounterfactualDecisionGate,
     DeciderClient,
-    EVIDENCE_GROUNDED,
     Thresholds,
 )
-from counterfactual_decision_gate.gate import _parse_answers  # noqa: E402
-from counterfactual_decision_gate.schemas import QuestionAnswer, Verdict  # noqa: E402
+from counterfactual_decision_gate.schemas import QuestionAnswer  # noqa: E402
+
+from timeshift.judge import BedrockJudge  # noqa: E402
 from timeshift.mission import Mission, Proposal  # noqa: E402
-
-LLM_JUDGE_PROMPT = """You are a strict evaluator. Read the STATE and answer the QUESTION.
-
-QUESTION: {q}
-"true" means: {t}
-"false" means: {f}
-
-Reply with ONLY a JSON object: {{"p_true": <probability between 0 and 1 that the answer is true>}}
-
-STATE:
-{state}"""
 
 
 def build(case: Case, gate: CounterfactualDecisionGate | None) -> tuple[Mission, Proposal, str]:
@@ -58,38 +47,6 @@ def build(case: Case, gate: CounterfactualDecisionGate | None) -> tuple[Mission,
                  based_on_revision=m.state.revision, based_on_tick=based_tick)
     fork_id, _ = m.fork([p])
     return m, p, fork_id
-
-
-class BedrockJudge:
-    """Config B: an ordinary LLM on Bedrock answers the SAME typed question."""
-
-    def __init__(self, model_id: str, region: str) -> None:
-        import boto3
-        from botocore.config import Config
-
-        self.model_id = model_id
-        self.rt = boto3.client("bedrock-runtime", region_name=region,
-                               config=Config(read_timeout=60, retries={"max_attempts": 10, "mode": "adaptive"}))
-
-    def ask(self, state: str) -> dict[str, Any]:
-        q = EVIDENCE_GROUNDED
-        prompt = LLM_JUDGE_PROMPT.format(q=q["instructions"], t=q["criteria"]["true"],
-                                         f=q["criteria"]["false"], state=state)
-        t0 = time.perf_counter()
-        r = self.rt.converse(modelId=self.model_id,
-                             messages=[{"role": "user", "content": [{"text": prompt}]}],
-                             inferenceConfig={"maxTokens": 60, "temperature": 0.0})
-        ms = (time.perf_counter() - t0) * 1000
-        text = r["output"]["message"]["content"][0]["text"]
-        mt = re.search(r"\{.*\}", text, re.S)
-        p = None
-        if mt:
-            try:
-                p = float(json.loads(mt.group(0))["p_true"])
-            except (ValueError, KeyError, TypeError):
-                p = None
-        return {"p_true": p, "raw": text[:200], "latency_ms": round(ms, 1),
-                "usage": r.get("usage", {}), "request_id": r["ResponseMetadata"]["RequestId"]}
 
 
 def run_case(case: Case, config: str, gate, judge, thresholds: Thresholds) -> dict[str, Any]:
@@ -181,9 +138,7 @@ def main() -> int:
         else:
             gate = CounterfactualDecisionGate(client, th)
     if a.config == "B":
-        judge = BedrockJudge(os.environ.get("JUDGE_MODEL_ID", os.environ.get(
-            "BEDROCK_MODEL_ID", "us.anthropic.claude-haiku-4-5-20251001-v1:0")),
-            os.environ.get("AWS_REGION", "us-east-1"))
+        judge = BedrockJudge()
     out = pathlib.Path(a.out)
     out.parent.mkdir(parents=True, exist_ok=True)
     meta = {"meta": True, "config": a.variant or a.config, "split": a.split, "thresholds": th.model_dump(),

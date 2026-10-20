@@ -8,6 +8,7 @@ from counterfactual_decision_gate import Verdict
 from counterfactual_decision_gate.strands_handler import CounterfactualGateHandler
 from strands.interventions import Guide, Proceed
 from test_mission import mission, prop
+
 from timeshift.explain import ConsequenceExplanation, RejectedBranch, consistency_issues
 
 HAB_LOW = lambda s: 0.2 if "PROPOSED ACTION: isolate_module" in s else 0.9  # noqa: E731

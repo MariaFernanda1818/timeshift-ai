@@ -22,6 +22,8 @@ from .questions import DEFAULT_QUESTIONS, render_state
 from .schemas import GateDecision, GateRequest, QuestionAnswer, Thresholds, Verdict
 
 HardChecks = Callable[[GateRequest], list[str]]
+# Second opinion for the REVIEW band: returns {"verdict": "PROCEED"|"DENY"|"REVIEW", ...metadata}.
+Escalation = Callable[[GateRequest, str], dict[str, Any]]
 
 
 class CounterfactualDecisionGate:
@@ -32,6 +34,7 @@ class CounterfactualDecisionGate:
         questions: Mapping[str, dict[str, Any]] | None = None,
         hard_checks: HardChecks | None = None,
         ask_on_hard_violation: bool = False,
+        escalate: Escalation | None = None,
     ) -> None:
         self.client = client
         self.thresholds = thresholds or Thresholds()
@@ -40,6 +43,7 @@ class CounterfactualDecisionGate:
             raise ValueError("questions must include 'evidence_grounded'")
         self.hard_checks = hard_checks
         self.ask_on_hard_violation = ask_on_hard_violation
+        self.escalate = escalate
 
     def evaluate(self, req: GateRequest, extra_violations: list[str] | None = None
                  ) -> GateDecision:
@@ -69,6 +73,9 @@ class CounterfactualDecisionGate:
 
         answers = _parse_answers(payload["answers"], self.questions)
         verdict, reasons = self.apply_policy(answers)
+        escalation = None
+        if verdict == Verdict.REVIEW and not hard and self.escalate is not None:
+            verdict, reasons, escalation = self._escalate(req, state, reasons)
         if hard:
             verdict = Verdict.DENY
             reasons = [f"deterministic policy: {v}" for v in hard] + [
@@ -78,7 +85,19 @@ class CounterfactualDecisionGate:
             decider_model=payload.get("model"), decider_checkpoint=health.get("checkpoint"),
             decider_latency_ms=payload.get("latency_ms"),
             decider_input_tokens=(payload.get("usage") or {}).get("input_tokens"),
-            wall_latency_ms=_ms(t0), **base)
+            wall_latency_ms=_ms(t0), escalation=escalation, **base)
+
+    def _escalate(self, req: GateRequest, state: str, reasons: list[str]
+                  ) -> tuple[Verdict, list[str], dict[str, Any]]:
+        """Only reached when Decider answered and landed in the review band. Any failure of the
+        second opinion keeps REVIEW (nothing is committed without a human)."""
+        try:
+            out = dict(self.escalate(req, state))  # type: ignore[misc]
+            v = Verdict(out.get("verdict", "REVIEW"))
+        except Exception as exc:  # noqa: BLE001
+            return Verdict.REVIEW, reasons + [f"escalation failed ({type(exc).__name__}); "
+                                              "kept REVIEW"], {"error": str(exc)}
+        return v, reasons + [f"review band escalated: second opinion -> {v.value}"], out
 
     def apply_policy(self, answers: Mapping[str, QuestionAnswer]) -> tuple[Verdict, list[str]]:
         th = self.thresholds

@@ -12,6 +12,7 @@ import sys
 import time
 
 from counterfactual_decision_gate import CounterfactualDecisionGate, DeciderClient, Thresholds
+
 from timeshift.agent import MissionAgent
 from timeshift.mission import Mission
 

@@ -11,6 +11,7 @@ from counterfactual_decision_gate import (
     DeciderUnavailable,
     Verdict,
 )
+
 from timeshift.mission import Mission, Proposal
 
 

@@ -33,7 +33,7 @@ idea. For every incident:
 5. Exactly one action is committed by the orchestrator, or the agent abstains. Every rejected
    future stays replayable.
 
-![Dashboard](screenshots/solar_cascade-B3-1440.png)
+![Dashboard](screenshots/agent-solar_cascade-r1-B3-1440.png)
 
 ## The future that should never have happened
 
@@ -49,14 +49,17 @@ A score-greedy agent would commit it, sealing four astronauts' home on the stren
 
 Decider reads the evidence and the simulated futures and answers:
 
-| Branch | Action | Sim score | `evidence_grounded` | Gate |
-|---|---|---|---|---|
-| B3 | isolate HAB (classifier) | **0.772 (#1)** | **0.26–0.35** | **DENY** |
-| B1 | activate backup power | 0.760 | 0.86–0.89 | PROCEED |
-| B2 | Bedrock-chosen load shed | 0.769 | 0.80–0.87 | PROCEED → committed |
+We ran the full loop five times: Bedrock proposing through Strands, the classifier adding its
+recommendation, every branch screened by Decider, and the commit going through the Strands
+intervention.
 
-*Ranges across real runs; see the evidence log.* The numbers could not have caught this. Only a
-question about *why* could.
+| Branch | Proposed by | Sim score | `evidence_grounded` (5 runs) | Gate |
+|---|---|---|---|---|
+| isolate HAB | anomaly classifier | **0.772 (#1 in 5/5)** | **0.333–0.347** | **DENY 5/5** |
+| activate backup power | Bedrock | 0.760 | 0.808–0.873 | PROCEED |
+| shed LAB load (reroute) | Bedrock | 0.769 | 0.751–0.814 | PROCEED → **committed 5/5** |
+
+The numbers could not have caught this. Only a question about *why* could.
 
 ## What exactly Decider decides
 
@@ -88,8 +91,10 @@ The gate is published as an application-agnostic package:
 `reusable-patterns/counterfactual-decision-gate/`. It includes the typed questions,
 schemas, a stdlib HTTP client for `/v1/systemone`, the policy, the Strands handler and failure
 handling, with unit and live tests. An IT-operations example shows a second agent with no lunar
-code, deciding between restarting a failing web node and failing over a healthy database on
-the strength of a chat rumour. ⟨PENDING: real run result.⟩ Bring your own counterfactual: a simulator, `terraform plan`, a
+code. In a real run, restarting the failing web node (cites telemetry) scored 0.891 → PROCEED,
+while failing over a healthy database because of a chat rumour scored 0.464 → REVIEW. That
+puts it in the human-review band rather than outright denial, which is an honest reminder that
+thresholds matter. Bring your own counterfactual: a simulator, `terraform plan`, a
 ledger dry-run.
 
 ## What we measured
@@ -97,31 +102,43 @@ ledger dry-run.
 All numbers are real runs on a laptop CPU (Intel i5-1235U, no GPU) unless marked.
 
 **Benchmark.** We used 40 synthetic proposals with labels written before any run: 10 for
-calibration, 30 held out. Every configuration saw identical states, seeds, candidates and
-horizons.
+calibration, 30 held out. Every configuration saw identical states, seeds, candidates, evidence
+and horizons. B and C were asked the same question.
 
-| Configuration (30 held-out cases) | Unsupported actions authorised | Supported actions blocked | Accuracy | Sent to review |
-|---|---|---|---|---|
-| A: deterministic policy only | 13 | 0 | 0.567 | 0 |
-| C: + Decider, hand-set threshold 0.70 | 7 | 0 | 0.767 | 5 |
-| C: + Decider, threshold 0.89 chosen on the calibration split | **2** | 1 | **0.900** | 11 |
-| B: + Bedrock LLM judge (same question) | ⟨PENDING⟩ | | | |
+| Configuration (30 held-out cases) | Unsupported actions authorised | Supported actions blocked | Accuracy | Human reviews | Median judge latency |
+|---|---|---|---|---|---|
+| A: deterministic policy only | 13 | 0 | 0.567 | 0 | — |
+| B: + Bedrock LLM judge (Claude Haiku 4.5) | 0 | 1 | 0.967 | 0 | 1.2 s |
+| C: + Decider 2B, hand-set threshold 0.70 | 7 | 0 | 0.767 | 5 | 32 s (laptop CPU) |
+| C: + Decider 2B, threshold 0.90 chosen on calibration | 0 | 2 | 0.933 | 14 | 32 s (laptop CPU) |
+| D: cascade, Decider first, uncertain band → LLM judge | 0 | 0 | 1.000 | 0 | 33.5 s (CPU) |
 
-**What Decider was good at:** unverified or invented premises (0.25–0.35).
+**The honest headline: on our benchmark, the general LLM judge was more accurate than Decider alone.**
+On a laptop CPU it was also far faster. Where Decider failed is instructive: actions that cite
+*real* telemetry but target the wrong thing, or rest on a contradicted premise, scored 0.78–0.89.
+Grounding isn't relevance. Supported actions scored 0.88–0.95, so the two ranges overlap.
 
-**What it missed:** actions that cite *real* telemetry but target the wrong component
-(0.82–0.89). Grounding isn't relevance. A second question we tried for relevance did not help
-on the calibration split, so we did not use it.
+**What Decider did well:** it was reliably low (0.31–0.35) on actions built on unverified reports,
+which is exactly the signature failure. Answers were bit-identical for identical inputs, it never
+returned malformed output, and it runs locally with no per-call cost and no data leaving the host.
+
+**The cascade (D)** is computed offline from the recorded B and C measurements, with its band chosen
+on the calibration split. Decider settled 12 of 21 semantic cases on its own, and only 9 went to the
+LLM, at an estimated $0.013 instead of $0.031. It scored 30/30 on held-out cases, but that's a small
+sample, so we treat it as a promising design to test on more data, not a result to generalise.
 
 **A null result:** a three-way `choice` question (proceed/review/deny) answered "proceed" in
 29 of 29 cases. Narrow `noul` questions with written true/false descriptions worked far better.
+A second noul question for relevance didn't help on the calibration split, so we never ran it
+on the held-out set.
 
-**Latency and footprint:** on CPU, Decider took 6.1 GB of RAM and a median of 33.5 s per gate call
-(~1,300-token states), or 8.6 s for ~200 tokens. On GPU: ⟨PENDING, g6.xlarge⟩. The upstream
-project reports ~115 ms on an RTX 3090.
+**Latency and footprint:** on CPU, Decider took 6.1 GB of RAM and a median of 32 s per gate call
+(~1,300-token states), or 8.6 s for ~200 tokens. The upstream project reports ~115 ms on an RTX
+3090. We have not measured GPU latency yet. ⟨PENDING: g6.xlarge⟩
 
-**End-to-end agent:** each run used about 11–13k Bedrock tokens and 3 tool calls (telemetry →
-fork → commit). Rehearsal reliability: ⟨see EVIDENCE.md: N of 5 runs⟩.
+**End-to-end agent:** each run used about 12–13k Bedrock tokens and 3 tool calls (telemetry →
+fork → commit), took ~2 minutes on CPU (three Decider calls), and produced the same safety outcome
+in 5 of 5 rehearsals.
 
 **Two things the gate caught that we didn't plan for:**
 - In one real run, Bedrock cited an evidence ID that doesn't exist (`E000-SOLAR`). The
@@ -152,19 +169,24 @@ SSM, and a least-privilege IAM role for one Bedrock model. ⟨PENDING: deploymen
 - The simulation is illustrative, not aerospace engineering.
 - Decider probabilities are not calibrated accuracy. Our threshold has a thin margin
   (supported actions cluster at 0.88–0.94).
-- 40 synthetic cases is a small benchmark.
+- 40 synthetic cases is a small benchmark. The cascade result is offline and on 30 held-out cases.
+- The HAB proposal in the signature scenario comes from the scripted classifier; Bedrock never
+  proposed it on its own in our runs.
 - The signature scenario was designed so that the simulator's top branch is ungrounded. The
   Decider verdicts were never tuned or overridden.
 
 ## What we learned
 
-1. **Simulation and semantics are complementary.** One measures consequences, the other
+1. **Measure against a strong baseline.** A general LLM judge beat Decider alone on our hard
+   cases. That changed our design from "Decider instead of an LLM" to "Decider first, LLM or
+   human for the uncertain band".
+2. **Simulation and semantics are complementary.** One measures consequences, the other
    checks reasons. Neither replaces the other.
-2. **Ask small models small questions.** One narrow yes/no with explicit definitions beat a
+3. **Ask small models small questions.** One narrow yes/no with explicit definitions beat a
    three-way verdict.
-3. **Gate every future, not just the chosen one.** In one rehearsal, Bedrock avoided the trap
+4. **Gate every future, not just the chosen one.** In one rehearsal, Bedrock avoided the trap
    on its own. Good, but behaviour isn't a guarantee. Screening every branch is.
-4. **Report the misses.** The wrong-target blind spot is the most useful finding for anyone
+5. **Report the misses.** The wrong-target blind spot is the most useful finding for anyone
    reusing the pattern.
 
 ## Links

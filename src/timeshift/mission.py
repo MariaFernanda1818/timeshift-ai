@@ -394,7 +394,7 @@ def decision_record(m: Mission, p: Proposal, fork_id: str | None, d: GateDecisio
         "answers": {k: v.model_dump() for k, v in d.answers.items()},
         "thresholds": d.thresholds.model_dump(),
         "hard_violations": d.hard_violations,
-        "verdict": d.verdict.value, "reasons": d.reasons,
+        "verdict": d.verdict.value, "reasons": d.reasons, "escalation": d.escalation,
         "decider_latency_ms": d.decider_latency_ms, "decider_input_tokens":
             d.decider_input_tokens, "wall_latency_ms": d.wall_latency_ms,
         "state_text": d.state_text,
