@@ -14,7 +14,7 @@ followed by a verified GPU/quota/pricing plan and owner approval.
 | FORK REALITY (isolated branches, no-op baseline, scoring) | yes | isolation/replay tests | real | **VERIFIED** | — |
 | Screening of every forked branch by the gate | yes | 4 tests + 5 real runs | real | **VERIFIED** | — |
 | Orchestrator (single mutation path, policy, temporal checks, idempotency) | yes | tests | real | **VERIFIED** | — |
-| Human review path (REVIEW → operator approve/reject) | yes | 5 tests | real | **VERIFIED** (unit); UI built, not yet exercised in a live browser run | live UI check |
+| Human review path (REVIEW → operator approve/reject) | yes | 5 tests + live server run (SSE → awaiting_review → approve → commit, real Decider) | real | **VERIFIED** (API); UI buttons not clicked in a browser yet | browser click-through |
 | External proposer (unvalidated classifier recommendation) | yes | test + 5 real runs | real | **VERIFIED** | — |
 | Decider 2B (`strands-decider-2B-qwen3.5-v1-2610`), CPU | yes | live tests, benchmark, agent runs | **real** | **VERIFIED** (local CPU) | GPU |
 | Reusable pattern (gate, client, handler, cached decisions) | yes | 16 unit + 1 live | real | **VERIFIED** | — |

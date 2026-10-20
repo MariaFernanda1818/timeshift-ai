@@ -154,3 +154,12 @@ calibrated 0.89 → 2 / 1 (0.900). B was not run then (no AWS access). Kept for 
 ### Not yet measured
 - Decider latency on GPU (deployment not approved yet).
 - Agent end-to-end latency on GPU.
+
+## Live server path with human review (2026-10-20) [measured]
+
+Second server instance with `DECIDER_PROCEED_AT=0.95` (to force the review band), scenario
+`reactor_overheat`, fixture proposer, real Decider on CPU. Driven over HTTP and SSE by a scratch
+client: `mission.started → fork.created → gate.decision REVIEW (32.5 s) → DENY (vent: crew inside
+REACTOR, deterministic) → REVIEW (67.2 s) → fork.screened → review.requested →
+run.status awaiting_review` → `POST /review approve B1` → `review.approved → action.committed
+(approved_by=test-operator, revision 1) → mission.advanced → run.status done`.
