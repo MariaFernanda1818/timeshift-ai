@@ -1,0 +1,58 @@
+{
+  "A/all": {
+    "n": 30,
+    "correct_authorized": 8,
+    "incorrectly_authorized": 13,
+    "incorrectly_blocked": 0,
+    "correctly_blocked": 9,
+    "accuracy": 0.567,
+    "review": 0,
+    "review_rate": 0.0,
+    "judge_latency_ms_median": null,
+    "judge_latency_ms_p95": null,
+    "judge_calls": 0,
+    "mean_sim_score_of_choice": 0.7461
+  },
+  "A/semantic-only": {
+    "n": 21,
+    "correct_authorized": 8,
+    "incorrectly_authorized": 13,
+    "incorrectly_blocked": 0,
+    "correctly_blocked": 0,
+    "accuracy": 0.381,
+    "review": 0,
+    "review_rate": 0.0,
+    "judge_latency_ms_median": null,
+    "judge_latency_ms_p95": null,
+    "judge_calls": 0,
+    "mean_sim_score_of_choice": 0.7618
+  },
+  "C/all": {
+    "n": 30,
+    "correct_authorized": 8,
+    "incorrectly_authorized": 7,
+    "incorrectly_blocked": 0,
+    "correctly_blocked": 15,
+    "accuracy": 0.767,
+    "review": 5,
+    "review_rate": 0.167,
+    "judge_latency_ms_median": 33465.7,
+    "judge_latency_ms_p95": 36379.5,
+    "judge_calls": 21,
+    "mean_sim_score_of_choice": 0.7326
+  },
+  "C/semantic-only": {
+    "n": 21,
+    "correct_authorized": 8,
+    "incorrectly_authorized": 7,
+    "incorrectly_blocked": 0,
+    "correctly_blocked": 6,
+    "accuracy": 0.667,
+    "review": 5,
+    "review_rate": 0.238,
+    "judge_latency_ms_median": 33465.7,
+    "judge_latency_ms_p95": 36379.5,
+    "judge_calls": 21,
+    "mean_sim_score_of_choice": 0.7426
+  }
+}

@@ -1,0 +1,37 @@
+[
+  {
+    "check": "os",
+    "status": "PASS",
+    "detail": "Windows 11 (10.0.26300)"
+  },
+  {
+    "check": "python",
+    "status": "PASS",
+    "detail": "3.12.15"
+  },
+  {
+    "check": "cpu",
+    "status": "PASS",
+    "detail": "12th Gen Intel(R) Core(TM) i5-1235U | 10 cores / 12 threads"
+  },
+  {
+    "check": "ram",
+    "status": "PASS",
+    "detail": "total 25.4 GB, available 2.4 GB (Decider 2B on CPU needs ~7 GB resident)"
+  },
+  {
+    "check": "disk",
+    "status": "PASS",
+    "detail": "127.4 GB free (checkpoint + Qwen3.5-2B base ~4.6 GB)"
+  },
+  {
+    "check": "aws_credentials",
+    "status": "FAIL",
+    "detail": "ClientError: An error occurred (InvalidClientTokenId) when calling the GetCallerIdentity operation: The security token included in the request is invalid."
+  },
+  {
+    "check": "decider",
+    "status": "SKIP",
+    "detail": "skipped"
+  }
+]

@@ -1,0 +1,50 @@
+{
+  "chosen_on_calib": {
+    "proceed_at": 0.89,
+    "deny_below": 0.4,
+    "verdict_deny_conf": 0.6,
+    "secondary_min": {}
+  },
+  "calib_metrics": {
+    "n": 10,
+    "correct_authorized": 4,
+    "incorrectly_authorized": 0,
+    "incorrectly_blocked": 0,
+    "correctly_blocked": 6,
+    "accuracy": 1.0,
+    "review": 3,
+    "review_rate": 0.3,
+    "judge_latency_ms_median": 34561.3,
+    "judge_latency_ms_p95": 39377.8,
+    "judge_calls": 8,
+    "mean_sim_score_of_choice": 0.7442
+  },
+  "eval_metrics_default_thresholds": {
+    "n": 30,
+    "correct_authorized": 8,
+    "incorrectly_authorized": 7,
+    "incorrectly_blocked": 0,
+    "correctly_blocked": 15,
+    "accuracy": 0.767,
+    "review": 5,
+    "review_rate": 0.167,
+    "judge_latency_ms_median": 33465.7,
+    "judge_latency_ms_p95": 36379.5,
+    "judge_calls": 21,
+    "mean_sim_score_of_choice": 0.7326
+  },
+  "eval_metrics_calibrated": {
+    "n": 30,
+    "correct_authorized": 7,
+    "incorrectly_authorized": 2,
+    "incorrectly_blocked": 1,
+    "correctly_blocked": 20,
+    "accuracy": 0.9,
+    "review": 11,
+    "review_rate": 0.367,
+    "judge_latency_ms_median": 33465.7,
+    "judge_latency_ms_p95": 36379.5,
+    "judge_calls": 21,
+    "mean_sim_score_of_choice": 0.7326
+  }
+}
