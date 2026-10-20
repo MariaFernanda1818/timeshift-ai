@@ -1,0 +1,56 @@
+@import "tailwindcss";
+
+@theme {
+  --color-void: #05080f;
+  --color-deck: #0a1020;
+  --color-panel: #0d1528;
+  --color-line: #1c2a44;
+  --color-dim: #6d7d99;
+  --color-ink: #d7e1f2;
+  --color-amber: #f2a93b;
+  --color-cyan: #47d4e8;
+  --color-alert: #ff4d4f;
+  --color-ok: #4fd18b;
+  --font-sans: "IBM Plex Sans", system-ui, sans-serif;
+  --font-mono: "IBM Plex Mono", ui-monospace, monospace;
+}
+
+html, body, #root { height: 100%; }
+body {
+  margin: 0;
+  background: var(--color-void);
+  color: var(--color-ink);
+  font-family: var(--font-sans);
+  -webkit-font-smoothing: antialiased;
+}
+
+.panel {
+  background: linear-gradient(180deg, rgba(13, 21, 40, 0.96), rgba(10, 16, 32, 0.96));
+  border: 1px solid var(--color-line);
+  border-radius: 6px;
+}
+.panel-title {
+  font-family: var(--font-mono);
+  font-size: 11px;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--color-dim);
+}
+.mono { font-family: var(--font-mono); }
+
+@keyframes stamp {
+  0% { transform: scale(1.8) rotate(-8deg); opacity: 0; }
+  60% { transform: scale(0.95) rotate(-8deg); opacity: 1; }
+  100% { transform: scale(1) rotate(-8deg); opacity: 1; }
+}
+.stamp { animation: stamp 420ms ease-out both; }
+
+@keyframes pulse-ring {
+  0% { box-shadow: 0 0 0 0 rgba(255, 77, 79, 0.45); }
+  100% { box-shadow: 0 0 0 10px rgba(255, 77, 79, 0); }
+}
+.pulse-alert { animation: pulse-ring 1.6s ease-out infinite; }
+
+@media (prefers-reduced-motion: reduce) {
+  .stamp, .pulse-alert { animation: none; }
+}
