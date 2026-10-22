@@ -60,17 +60,25 @@ whether EC2 GPU instances and Bedrock are eligible services).
 If the G/VT quota is below 4: `aws service-quotas request-service-quota-increase --service-code ec2
 --quota-code L-DB2E81BA --desired-value 8` (free to request; approval can take hours or days).
 
-## Step 2: cost estimate (to be filled from Step 1 output, then approved)
+## Step 2: cost estimate and the US$15 cap
 
-| Item | Rate (Pricing API) | Planned usage | Estimate |
+**Planned spending cap: US$15** for deployment + testing, including storage, transfer and Bedrock.
+This is a plan, not an authorisation: the owner approves the final numbers from Step 1.
+
+| Item | Rate (replace with Pricing API values) | Planned usage | Estimate |
 |---|---|---|---|
-| g6.xlarge or fallback | from readiness JSON | ≤ 12 h (deploy, validate, record, judge window) | rate × 12 |
-| EBS gp3 100 GiB | ~$0.08/GiB-month | ~3 days | ~$1 |
-| Bedrock Haiku 4.5 | per token | ~0.5 M tokens | < $2 |
-| Data transfer, SSM | minimal | — | < $1 |
+| g6.xlarge (GPU path) | ~$0.80/h | ≤ 12 h | ≤ $9.70 |
+| *or* c7i.2xlarge (CPU fallback) | ~$0.36/h | ≤ 12 h | ≤ $4.30 |
+| EBS gp3 100 GiB | ~$0.08/GiB-month | ≤ 2 days | ≤ $0.55 |
+| Bedrock Claude Haiku 4.5 | ~$1 / $5 per M in/out tokens | ≤ 0.5 M in, 0.05 M out | ≤ $0.75 |
+| Data transfer out (dashboard via SSM, model download is inbound/free) | ~$0.09/GB | ≤ 2 GB | ≤ $0.20 |
+| Public IPv4 address | $0.005/h | ≤ 12 h | ≤ $0.06 |
+| **GPU path total** | | | **≤ ~$11.30** |
+| **CPU path total** | | | **≤ ~$5.90** |
 
-Hard stop: terminate the stack after the video is recorded unless the owner asks to keep it running.
-Set an AWS Budget alert at $50.
+Guardrails: an AWS Budget alert at $10 (actual) and $15 (forecast), owner-created; the instance is
+stopped whenever idle; the stack is deleted right after the video is recorded. Under the cap, the GPU
+path allows at most ~15 instance-hours in total.
 
 ## Step 3: deploy (ONLY after approval)
 
@@ -96,11 +104,16 @@ aws cloudformation describe-stacks --stack-name timeshift --query "Stacks[0].Out
 4. `nvidia-smi` output and `systemctl status decider timeshift`, saved to `docs/deployment/`.
 5. Record the demo video from this instance.
 
-## Step 5: teardown
+## Step 5: teardown (verifiable)
 
 ```bash
 aws cloudformation delete-stack --stack-name timeshift
 aws cloudformation wait stack-delete-complete --stack-name timeshift
+python scripts/aws_teardown_check.py --stack timeshift     # read-only; exit 0 = nothing left
 ```
+
+The check confirms the stack is gone, no tagged instance is in any non-terminated state, and no
+project EBS volume, stack security group or stack IAM role remains. Save its output to
+`docs/deployment/teardown.txt`.
 
 The root volume has `DeleteOnTermination: true`. The role and instance profile are deleted with the stack.

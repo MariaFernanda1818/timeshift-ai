@@ -19,7 +19,10 @@
         "pricing:GetProducts",
         "bedrock:ListFoundationModels",
         "bedrock:GetFoundationModel",
-        "cloudformation:ValidateTemplate"
+        "cloudformation:ValidateTemplate",
+        "ec2:DescribeVolumes",
+        "iam:ListRoles",
+        "cloudformation:DescribeStacks"
       ],
       "Resource": "*"
     },
