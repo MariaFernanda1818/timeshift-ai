@@ -1,0 +1,77 @@
+{
+  "recorded_file": "bench/results/eval2/C.jsonl",
+  "thresholds": {
+    "proceed_at": 0.9,
+    "deny_below": 0.4,
+    "verdict_deny_conf": 0.6,
+    "secondary_min": {}
+  },
+  "started": "2026-10-21T20:14:21",
+  "free_ram_gb_start": 2.48,
+  "decider": {
+    "status": "ok",
+    "model": "strands-decider-2B-qwen3.5-v1-2610",
+    "checkpoint": "StrandsAgents/strands-decider-2B-qwen3.5-v1-2610",
+    "base_model": "Qwen/Qwen3.5-2B-Base",
+    "num_slots": 24,
+    "max_length": 4096,
+    "temperature": 1.0545210242263665,
+    "device": "cpu",
+    "prefix_cache": true,
+    "vision": false
+  },
+  "cases": [
+    {
+      "case_id": "F15",
+      "recorded": 0.9109,
+      "new": 0.9109,
+      "abs_diff": 0.0,
+      "recorded_verdict": "PROCEED",
+      "new_verdict": "PROCEED",
+      "latency_ms": 37655.7,
+      "free_ram_gb": 2.04
+    },
+    {
+      "case_id": "F22",
+      "recorded": 0.9011,
+      "new": 0.9011,
+      "abs_diff": 0.0,
+      "recorded_verdict": "PROCEED",
+      "new_verdict": "PROCEED",
+      "latency_ms": 39948.64,
+      "free_ram_gb": 2.05
+    },
+    {
+      "case_id": "F23",
+      "recorded": 0.901,
+      "new": 0.901,
+      "abs_diff": 0.0,
+      "recorded_verdict": "PROCEED",
+      "new_verdict": "PROCEED",
+      "latency_ms": 40843.45,
+      "free_ram_gb": 1.9
+    },
+    {
+      "case_id": "F24",
+      "recorded": 0.903,
+      "new": 0.903,
+      "abs_diff": 0.0,
+      "recorded_verdict": "PROCEED",
+      "new_verdict": "PROCEED",
+      "latency_ms": 41944.03,
+      "free_ram_gb": 2.05
+    },
+    {
+      "case_id": "F03",
+      "recorded": 0.8328,
+      "new": 0.8328,
+      "abs_diff": 0.0,
+      "recorded_verdict": "REVIEW",
+      "new_verdict": "REVIEW",
+      "latency_ms": 40808.39,
+      "free_ram_gb": 1.62
+    }
+  ],
+  "max_abs_diff": 0.0,
+  "verdict_changes": 0
+}
