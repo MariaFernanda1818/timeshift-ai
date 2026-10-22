@@ -24,29 +24,38 @@ operator laptop --SSM port forward (no inbound ports)--> EC2 (private by policy,
   readiness checks, one Bedrock model, this stack only, and SSM sessions to tagged project instances.
   Replace `ACCOUNT_ID`. *Not yet tested against IAM; validate with IAM Access Analyzer.*
 
-## Why a GPU, and the CPU fallback
+## Account constraints and the two deployment paths
 
-Measured on the laptop CPU (i5-1235U): Decider took 6.1 GB of RAM and ~30–45 s per gate call
-(~1,300-token state). A full agent run took ~2 min. Upstream reports ~115 ms per question on an RTX
-3090 (not measured by us).
+- The account is on the AWS **Free plan**. AWS states that the Free plan "is limited from accessing a
+  subset of AWS services and offerings" (Free Tier FAQ). Third-party guides list only small EC2 types
+  as launchable on the Free plan (t3/t4g micro/small, c7i-flex.large, m7i-flex.large) and **no GPU
+  types**. We have not verified this on our account yet.
+- **No AWS Organizations or IAM Identity Center:** enabling them can change the plan and affect
+  credits. Authentication uses the IAM user `timeshift-dev` with `aws login` (no SSO, no long-term keys).
 
-| Option | Instance | Decider device | Expected behaviour | Status |
+| Path | Instance | Decider device | Requires | Expected Decider latency |
 |---|---|---|---|---|
-| Primary | g6.xlarge (1× L4 24 GB, 4 vCPU, 16 GiB) | cuda | sub-second to a few seconds per call (to be measured) | needs G/VT quota ≥ 4 vCPU |
-| Alternate GPU | g5.xlarge (A10G 24 GB) | cuda | similar | same quota |
-| CPU fallback | c7i.4xlarge (16 vCPU, 32 GiB) | cpu | likely tens of seconds per call (to be measured; must not be assumed faster than the laptop) | standard quota ≥ 16 vCPU |
+| **A: Free-plan CPU (default)** | m7i-flex.large (2 vCPU, 8 GiB) + 6 GiB swap | cpu | nothing beyond the dev identity (if the Free plan allows the type) | slow: proxy measurement below; must be re-measured on EC2 |
+| B: paid-plan CPU | c7i.2xlarge (8 vCPU, 16 GiB) | cpu | **owner upgrades to the Paid plan** (irreversible, see the FAQ) + standard quota | tens of seconds per call |
+| C: GPU (preferred if allowed) | g6.xlarge (L4 24 GB) | cuda | **Paid plan** + G/VT quota ≥ 4 vCPU (new accounts usually start at 0; increases can take hours or days) | expected sub-second to seconds (not measured) |
 
-If the GPU quota is not granted in time, we deploy the CPU fallback and present latency as
-measured. The decision logic is identical on CPU and GPU (same checkpoint, same answers).
+Both CPU and GPU run the same checkpoint and code, so decisions are identical. Only latency differs.
+Path A is the smallest compliant deployment: the agent, Bedrock and Decider all run on AWS. The
+demo then replays the run recorded on that instance, captioned with its real latency.
+
+Measured on the laptop (i5-1235U): Decider took 6.1 GB of RAM and ~30–45 s per gate call (~1,300-token
+state) with all cores. A 2-thread proxy for Path A is recorded in EVIDENCE.md.
 
 ## Step 1: readiness (read-only, with the dev identity)
 
 ```bash
-export AWS_PROFILE=<dev-profile> AWS_REGION=us-east-1
+aws login --profile timeshift-dev --region us-east-1      # no SSO, no long-term keys
+aws sts get-caller-identity --profile timeshift-dev      # must be ...:user/timeshift-dev
+export AWS_PROFILE=timeshift-dev AWS_REGION=us-east-1
 python scripts/aws_readiness.py --json bench/results/aws_readiness.json
 ```
 
-It refuses to run with root credentials, then reports:
+It refuses to run unless the identity is `user/timeshift-dev` (never root), then reports:
 - EC2 quotas `L-DB2E81BA` (G/VT vCPU) and `L-1216C47A` (standard vCPU);
 - per-AZ offerings for g6.xlarge, g5.xlarge, c7i.4xlarge and c7i.2xlarge;
 - **current on-demand prices from the AWS Pricing API**;
@@ -67,14 +76,16 @@ This is a plan, not an authorisation: the owner approves the final numbers from 
 
 | Item | Rate (replace with Pricing API values) | Planned usage | Estimate |
 |---|---|---|---|
-| g6.xlarge (GPU path) | ~$0.80/h | ≤ 12 h | ≤ $9.70 |
-| *or* c7i.2xlarge (CPU fallback) | ~$0.36/h | ≤ 12 h | ≤ $4.30 |
-| EBS gp3 100 GiB | ~$0.08/GiB-month | ≤ 2 days | ≤ $0.55 |
+| m7i-flex.large (Path A, Free-plan CPU) | ~$0.10/h (may be covered by Free-plan credits) | ≤ 24 h | ≤ $2.40 |
+| g6.xlarge (Path C, GPU) | ~$0.80/h | ≤ 12 h | ≤ $9.70 |
+| *or* c7i.2xlarge (Path B, paid-plan CPU) | ~$0.36/h | ≤ 12 h | ≤ $4.30 |
+| EBS gp3 40 GiB (CPU) / 100 GiB (GPU) | ~$0.08/GiB-month | ≤ 2 days | ≤ $0.25 / ≤ $0.55 |
 | Bedrock Claude Haiku 4.5 | ~$1 / $5 per M in/out tokens | ≤ 0.5 M in, 0.05 M out | ≤ $0.75 |
 | Data transfer out (dashboard via SSM, model download is inbound/free) | ~$0.09/GB | ≤ 2 GB | ≤ $0.20 |
 | Public IPv4 address | $0.005/h | ≤ 12 h | ≤ $0.06 |
-| **GPU path total** | | | **≤ ~$11.30** |
-| **CPU path total** | | | **≤ ~$5.90** |
+| **Path A total** | | | **≤ ~$3.70** |
+| **Path B total** | | | **≤ ~$5.60** |
+| **Path C total** | | | **≤ ~$11.30** |
 
 Guardrails: an AWS Budget alert at $10 (actual) and $15 (forecast), owner-created; the instance is
 stopped whenever idle; the stack is deleted right after the video is recorded. Under the cap, the GPU

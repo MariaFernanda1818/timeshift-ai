@@ -7,9 +7,11 @@ Description: >
 Parameters:
   InstanceType:
     Type: String
-    Default: g6.xlarge
-    AllowedValues: [g6.xlarge, g5.xlarge, c7i.4xlarge, c7i.2xlarge]
-    Description: g6/g5 = GPU (Decider on CUDA). c7i = CPU fallback (Decider on CPU, tens of seconds per call).
+    Default: m7i-flex.large
+    AllowedValues: [m7i-flex.large, c7i-flex.large, c7i.2xlarge, c7i.4xlarge, g6.xlarge, g5.xlarge]
+    Description: >
+      m7i-flex.large (2 vCPU, 8 GiB) = Free-plan CPU path (Decider on CPU + swap, slow).
+      c7i.* = larger CPU paths (paid plan). g6/g5 = GPU path (paid plan + G/VT quota).
   GpuAmi:
     Type: AWS::SSM::Parameter::Value<AWS::EC2::Image::Id>
     Default: /aws/service/deeplearning/ami/x86_64/base-oss-nvidia-driver-gpu-ubuntu-22.04/latest/ami-id
@@ -32,10 +34,12 @@ Parameters:
     Default: anthropic.claude-haiku-4-5-20251001-v1:0
   VolumeGiB:
     Type: Number
-    Default: 100
+    Default: 0
+    Description: 0 = automatic (100 GiB for the GPU AMI, 40 GiB for Ubuntu CPU).
 
 Conditions:
   IsGpu: !Or [!Equals [!Ref InstanceType, g6.xlarge], !Equals [!Ref InstanceType, g5.xlarge]]
+  AutoVolume: !Equals [!Ref VolumeGiB, 0]
 
 Resources:
   Role:
@@ -88,7 +92,11 @@ Resources:
           GroupSet: [!Ref NoInbound]
       BlockDeviceMappings:
         - DeviceName: /dev/sda1
-          Ebs: { VolumeSize: !Ref VolumeGiB, VolumeType: gp3, Encrypted: true, DeleteOnTermination: true }
+          Ebs:
+            VolumeSize: !If [AutoVolume, !If [IsGpu, 100, 40], !Ref VolumeGiB]
+            VolumeType: gp3
+            Encrypted: true
+            DeleteOnTermination: true
       Tags:
         - { Key: Name, Value: timeshift }
         - { Key: project, Value: timeshift-hackathon }

@@ -23,8 +23,12 @@ import boto3
 from botocore.exceptions import BotoCoreError, ClientError
 
 REGION = os.environ.get("AWS_REGION", "us-east-1")
-CANDIDATES = {"g6.xlarge": "GPU (NVIDIA L4 24 GB) — primary", "g5.xlarge": "GPU (A10G 24 GB) — alt",
-              "c7i.4xlarge": "CPU fallback (16 vCPU, 32 GiB)", "c7i.2xlarge": "CPU fallback (8 vCPU, 16 GiB)"}
+CANDIDATES = {"m7i-flex.large": "CPU, Free-plan eligible per third-party lists (2 vCPU, 8 GiB)",
+              "c7i-flex.large": "CPU, Free-plan eligible per third-party lists (2 vCPU, 4 GiB) - too small",
+              "c7i.2xlarge": "CPU, paid plan (8 vCPU, 16 GiB)",
+              "c7i.4xlarge": "CPU, paid plan (16 vCPU, 32 GiB)",
+              "g6.xlarge": "GPU NVIDIA L4 24 GB, paid plan + G/VT quota",
+              "g5.xlarge": "GPU A10G 24 GB, paid plan + G/VT quota"}
 QUOTAS = {"L-DB2E81BA": "Running On-Demand G and VT instances (vCPU)",
           "L-1216C47A": "Running On-Demand Standard (A, C, D, H, I, M, R, T, Z) instances (vCPU)"}
 GPU_AMI_PARAM = "/aws/service/deeplearning/ami/x86_64/base-oss-nvidia-driver-gpu-ubuntu-22.04/latest/ami-id"
@@ -77,13 +81,17 @@ def main() -> int:
     if arn.endswith(":root"):
         check("identity", "FAIL", "credentials are the account ROOT user; use the restricted dev identity")
         return 1
+    expected = os.environ.get("EXPECTED_IAM_USER", "timeshift-dev")
+    if not arn.endswith(f":user/{expected}"):
+        check("identity", "FAIL", f"{mask(arn)} is not user/{expected}")
+        return 1
     check("identity", "PASS", mask(arn))
 
     sq = s.client("service-quotas")
     for code, label in QUOTAS.items():
         try:
             v = sq.get_service_quota(ServiceCode="ec2", QuotaCode=code)["Quota"]["Value"]
-            need = 4 if code == "L-DB2E81BA" else 16
+            need = 4 if code == "L-DB2E81BA" else 2
             check(f"quota {code}", "PASS" if v >= need else "FAIL",
                   f"{label}: {v:g} vCPU (need >= {need} for the planned instance)")
         except (ClientError, BotoCoreError) as exc:
@@ -136,7 +144,9 @@ def main() -> int:
         except (ClientError, BotoCoreError) as exc:
             check("bedrock", "FAIL", f"{MODEL}: {type(exc).__name__}: {exc}")
 
-    print("\nManual: Billing > Credits — confirm credit balance, expiry and that EC2 (GPU) and "
+    print("\nFree plan: EC2 offerings/quotas above do NOT prove the Free plan allows a type. Confirm in the"
+          " EC2 console launch wizard (restricted types are not launchable) before approval.")
+    print("Manual: Billing > Credits — confirm credit balance, expiry and that EC2 (GPU) and "
           "Bedrock usage are eligible. Credits are not readable through these APIs.")
     if a.json:
         with open(a.json, "w", encoding="utf-8") as f:

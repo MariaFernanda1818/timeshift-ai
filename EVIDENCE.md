@@ -193,3 +193,9 @@ Re-ran the 4 boundary cases (just above 0.90) and 1 band case with 1.6–2.1 GB 
 **identical** to the recorded run at the server's 4-decimal precision (F15 0.9109, F22 0.9011, F23 0.901,
 F24 0.903, F03 0.8328): max |Δ| = 0.0, verdict changes 0/5. Latency was 37.7–41.9 s. This supports, but does
 not prove for every input, that memory pressure affected latency and not answers.
+
+### Path A latency proxy: Decider limited to 2 CPU threads (2026-10-21) [measured, proxy]
+Decider restarted with `OMP_NUM_THREADS=MKL_NUM_THREADS=TORCH_NUM_THREADS=2` on the laptop to approximate a
+2-vCPU m7i-flex.large. One eval2 gate call (F03, ~1,300 tokens) took **69.2 s**, against ~41 s with all
+cores. The answer was identical (0.8328, REVIEW). Free RAM was 0.4–1.9 GB. A laptop core is not an EC2 vCPU,
+so this must be re-measured on the instance. Implication: ~3.5 min per full agent run (3 gate calls).
