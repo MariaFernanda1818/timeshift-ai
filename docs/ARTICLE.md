@@ -8,9 +8,10 @@
 **TL;DR.** TIME//SHIFT forks a simulated lunar base into alternative futures before acting, then
 gates every future with a typed evidence check. Our most useful finding was not that a small
 decision model beats an LLM. It didn't, on our hard cases. What we found is that **fast specialised
-decisions plus selective generative escalation** may offer a better trade-off between decision
-quality, latency and cost than either alone. We show where that holds, where it doesn't, and how we
-are testing it.
+decisions plus selective generative escalation** can be a useful trade-off between decision quality,
+latency and cost. It is only as good as the small model's confidence, though: on fresh, pre-registered
+cases a few wrong actions scored *above* our escalation band, and no escalation can catch those. We
+show where the design helps, where it fails, and the numbers behind both.
 
 ## The problem: the most attractive action can be the least justified
 

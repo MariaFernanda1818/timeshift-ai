@@ -101,12 +101,15 @@ uv pip install --python .venv/Scripts/python.exe "strands-decider @ git+https://
 uv pip install --python .venv/Scripts/python.exe -e ".[dev]" -e "reusable-patterns/counterfactual-decision-gate[strands]" "botocore[crt]"
 .venv/Scripts/strands-decider serve StrandsAgents/strands-decider-2B-qwen3.5-v1-2610 --port 8099 --device cpu
 python scripts/validate_env.py                               # environment, Bedrock and Decider checks
-pytest -q                                                    # 69 unit tests (no model needed)
+pytest -q                                                    # unit tests (no model needed)
 python scripts/run_cycle.py --scenario solar_cascade --out runs/fixture-solar_cascade.jsonl
 AWS_PROFILE=... python scripts/run_agent.py --scenario solar_cascade --out runs/agent-solar_cascade.jsonl
 (cd frontend && npm ci && npm run build)
 uvicorn timeshift.server:app --port 8080                     # open http://127.0.0.1:8080
 ```
+
+On Linux/macOS replace `.venv/Scripts/` with `.venv/bin/`. On a CUDA host install
+`strands-decider[cuda]` and serve with `--device cuda`.
 
 Configuration: see [.env.example](.env.example). `DECIDER_PROCEED_AT` sets the PROCEED threshold
 (default 0.70; 0.90 was chosen on the calibration split). `TIMESHIFT_ESCALATION=bedrock` sends only
