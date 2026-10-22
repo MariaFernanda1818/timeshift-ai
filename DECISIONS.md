@@ -99,3 +99,14 @@ LLM judge) scored 30/30 with 9 of 21 semantic cases escalated. We kept Decider a
 escalation (`escalate=` in the pattern, `TIMESHIFT_ESCALATION=bedrock` in the app). Invariants:
 escalation is never used when Decider failed or a hard check failed, and an escalation failure keeps
 REVIEW. The live check is pending (AWS session expired).
+
+### D17 — Adaptive escalation becomes the headline design; confirmatory test pre-registered (2026-10-21)
+The owner asked to centre the project on "fast specialised decisions + selective generative
+escalation", without overstating it. To avoid tuning on the test set:
+- 30 new held-out cases (`bench/cases_eval2.py`) were written and committed (00ef8eb) before any model ran.
+- Cascade thresholds are frozen from the v1 calibration split: Decider band [0.68, 0.90). The escalation
+  judge keeps B's thresholds (PROCEED ≥ 0.70, DENY < 0.40, otherwise REVIEW).
+- D runs live (`run_bench.py --config D --cases eval2`): real Decider + real Bedrock calls in the gate.
+- REVIEW is reported separately: coverage, covered accuracy, risk (wrong commits / N), and the human
+  reviews split by label. Accuracy counts REVIEW as "not committed".
+- Feature freeze: no new product features, only submission-critical work.

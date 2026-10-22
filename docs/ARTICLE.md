@@ -3,7 +3,14 @@
 `#strands-decider-2b` `#guardrails`
 
 > **Draft.** Items marked ⟨PENDING⟩ are filled only from real measurements (AWS deployment,
-> GPU latency, LLM-judge baseline). Nothing here is extrapolated.
+> GPU latency, the pre-registered held-out cascade evaluation). Nothing here is extrapolated.
+
+**TL;DR.** TIME//SHIFT forks a simulated lunar base into alternative futures before acting, then
+gates every future with a typed evidence check. Our most useful finding was not that a small
+decision model beats an LLM. It didn't, on our hard cases. What we found is that **fast specialised
+decisions plus selective generative escalation** may offer a better trade-off between decision
+quality, latency and cost than either alone. We show where that holds, where it doesn't, and how we
+are testing it.
 
 ## The problem: the most attractive action can be the least justified
 
@@ -47,8 +54,6 @@ TIME//SHIFT forks the mission. In our recorded runs, the simulator ranks *sealin
 as the **best** future (score 0.772). Shedding 4.5 kW of load really does help the power budget.
 A score-greedy agent would commit it, sealing four astronauts' home on the strength of a rumour.
 
-Decider reads the evidence and the simulated futures and answers:
-
 We ran the full loop five times: Bedrock proposing through Strands, the classifier adding its
 recommendation, every branch screened by Decider, and the commit going through the Strands
 intervention.
@@ -60,6 +65,27 @@ intervention.
 | shed LAB load (reroute) | Bedrock | 0.769 | 0.751–0.814 | PROCEED → **committed 5/5** |
 
 The numbers could not have caught this. Only a question about *why* could.
+
+## The design that came out of measuring: adaptive escalation
+
+```
+proposal ─► deterministic policy ──violation──► DENY (no model consulted)
+               │ ok
+               ▼
+          Strands Decider 2B: evidence_grounded = p
+               │
+     p < 0.68 ─┼─► DENY            (fast, local, no LLM call)
+     p ≥ 0.90 ─┼─► PROCEED         (fast, local, no LLM call)
+               ▼
+     0.68 ≤ p < 0.90 (uncertain band) ─► Bedrock LLM judge, same question
+                                           ├─► PROCEED / DENY
+                                           └─► still uncertain or judge error ─► REVIEW (human)
+Decider unreachable / malformed ─► DENY. The LLM never replaces a failed Decider.
+```
+
+The band edges were chosen on a 10-case calibration split and then **frozen**. We are validating the
+design on a fresh, pre-registered held-out set (labels committed before any model saw it; see
+*What we measured*).
 
 ## What exactly Decider decides
 
@@ -122,10 +148,17 @@ Grounding isn't relevance. Supported actions scored 0.88–0.95, so the two rang
 which is exactly the signature failure. Answers were bit-identical for identical inputs, it never
 returned malformed output, and it runs locally with no per-call cost and no data leaving the host.
 
-**The cascade (D)** is computed offline from the recorded B and C measurements, with its band chosen
-on the calibration split. Decider settled 12 of 21 semantic cases on its own, and only 9 went to the
-LLM, at an estimated $0.013 instead of $0.031. It scored 30/30 on held-out cases, but that's a small
-sample, so we treat it as a promising design to test on more data, not a result to generalise.
+**The cascade (D), exploratory.** Computed offline from the recorded B and C measurements, with
+its band chosen on the calibration split. Decider settled 12 of 21 semantic cases on its own, and only
+9 went to the LLM, at an estimated $0.013 instead of $0.031. It scored 30/30 on these held-out cases.
+That is a small sample, and both the band and this evaluation came from the same benchmark design,
+so we treated it as a hypothesis to confirm.
+
+**The cascade (D), confirmatory ⟨PENDING⟩.** We wrote 30 *new* cases with labels and committed them
+before any model ran (`bench/cases_eval2.py`). The band is frozen at [0.68, 0.90), and D runs
+**live**, with real Decider and real Bedrock calls inside the gate. We report wrong commits (risk),
+wrong blocks, human reviews (split by what the reviewer would face), coverage, covered accuracy,
+the measured LLM invocation rate, latency and token cost. ⟨results⟩
 
 **A null result:** a three-way `choice` question (proceed/review/deny) answered "proceed" in
 29 of 29 cases. Narrow `noul` questions with written true/false descriptions worked far better.
@@ -178,8 +211,9 @@ SSM, and a least-privilege IAM role for one Bedrock model. ⟨PENDING: deploymen
 ## What we learned
 
 1. **Measure against a strong baseline.** A general LLM judge beat Decider alone on our hard
-   cases. That changed our design from "Decider instead of an LLM" to "Decider first, LLM or
-   human for the uncertain band".
+   cases. That changed our design from "Decider instead of an LLM" to "Decider first, LLM only for
+   the uncertain band, human when both are unsure". The value of a small decision model is in
+   *when it is confident*, not in every case.
 2. **Simulation and semantics are complementary.** One measures consequences, the other
    checks reasons. Neither replaces the other.
 3. **Ask small models small questions.** One narrow yes/no with explicit definitions beat a

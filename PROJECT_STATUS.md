@@ -1,6 +1,6 @@
 # Project status
 
-_Last updated: 2026-10-20 (day 3 of 5). Deadline: 2026-10-23 11:59 PM PDT._
+_Last updated: 2026-10-21 (day 4 of 5). Deadline: 2026-10-23 11:59 PM PDT. **Feature freeze in effect.**_
 
 **Current phase:** end-to-end verified locally with real Bedrock and real Decider. A/B/C/D benchmark
 complete. Local commits made, nothing published. AWS deployment waits on the restricted IAM identity,
@@ -28,7 +28,8 @@ followed by a verified GPU/quota/pricing plan and owner approval.
 | Benchmark A / B / C (v2) + calibration + cascade D (offline) | yes | 40 cases each | real | **VERIFIED** | more cases would strengthen D |
 | Optional REVIEW-band escalation to Bedrock judge (`TIMESHIFT_ESCALATION`) | yes | 5 unit tests | real when enabled | **IMPLEMENTED BUT UNVERIFIED (live)**: AWS login session expired before the live check | run with dev identity |
 | Fixture recordings with screening (3 scenarios) | yes | real Decider | fixture proposals, real inference | **VERIFIED** | — |
-| AWS deployment (g6.xlarge, private, SSM) | scripts + docs | — | — | **INCOMPLETE**: needs restricted identity, GPU quota, approval | provision, validate |
+| AWS deployment (g6.xlarge, private, SSM; c7i CPU fallback) | CloudFormation (cfn-lint clean), GPU/CPU user-data, read-only readiness script, suggested dev IAM policy | lint only | — | **PREPARED, NOT PROVISIONED**: needs dev identity → readiness → approval | run readiness, deploy, capture evidence |
+| Confirmatory cascade evaluation (eval2, pre-registered, frozen thresholds) | cases + live config D + abstention metrics | A done; C running (CPU); B and D need Bedrock | real | **IN PROGRESS** | B, D live with dev identity |
 | Builder Center article | `docs/ARTICLE.md` with v2 benchmark + rehearsal numbers | — | — | **INCOMPLETE** | GPU latency, deployment evidence, links |
 | Demo script / submission checklist | `docs/DEMO_SCRIPT.md`, `docs/SUBMISSION_CHECKLIST.md` | — | — | drafted | record video |
 | Local git history | 7+ commits, LF-safe shell scripts, CI workflow (pytest, ruff, frontend build) | — | — | **VERIFIED locally** (CI not run: not pushed) | publish on approval |
