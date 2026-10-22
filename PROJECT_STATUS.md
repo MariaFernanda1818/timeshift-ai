@@ -10,7 +10,7 @@ _Last updated: 2026-10-21 (night). Deadline: 2026-10-23 11:59 PM PDT; target: su
 | # | Blocker | Why blocked | Unblocked by |
 |---|---|---|---|
 | 1 | Agent running **on AWS** (EC2 + Bedrock + Decider) | no non-root identity; deployment not approved | owner: dev identity → readiness check → approval |
-| 2 | Public GitHub repository | publication needs approval (audit done, see below) | owner: approve push; choose author email |
+| 2 | Public GitHub repository | publication needs approval. Audit done; history rewritten to the GitHub noreply email (17 commits, trees/dates/messages verified identical, backup bundle in `C:\timeshift-ai-backup`) | owner: approve `git push origin main` (main only, no tags) |
 | 3 | Public demo video < 3 min | should be recorded from the AWS deployment (fallback: local, labelled) | after #1, or owner accepts local recording |
 | 4 | Builder Center article published with `#strands-decider-2b` `#guardrails` | needs repo + video links and GPU/deployment numbers | after #1–#3; owner publishes |
 | 5 | Bedrock re-verified with the dev identity | the earlier verification used a temporary root session | dev identity |
@@ -28,7 +28,7 @@ template (cfn-lint clean), read-only readiness script, repository audit.
 - More benchmark cases; GPU re-run of the benchmark.
 - UI click-through of the Approve/Reject buttons in a browser.
 
-### Estimated deployment cost (third-party prices; replace with Pricing API values from `scripts/aws_readiness.py`)
+### Estimated deployment cost: planned cap US$15 (details in docs/AWS_DEPLOYMENT.md; third-party prices until `scripts/aws_readiness.py` runs)
 
 | Path | Instance | ~$/h | 12 h window | Notes |
 |---|---|---|---|---|
