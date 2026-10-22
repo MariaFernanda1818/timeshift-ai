@@ -50,6 +50,11 @@ configuration (details and caveats: [EVIDENCE.md](EVIDENCE.md)):
 reliable on unverified premises but scored real-evidence/wrong-target actions too high. We report
 this as measured. The cascade (D) is now an optional mode (`TIMESHIFT_ESCALATION`, below).
 
+**Confirmatory check (pre-registered eval2, 30 new cases):** with the frozen 0.90 threshold,
+Decider let **4** unsupported actions through (scores 0.901–0.911), had 3 wrong blocks and sent 13 to
+human review. The D = 1.000 above is exploratory and did **not** carry over to Decider's stage on
+new data. Live B and D on eval2 are pending (Bedrock dev identity). See [EVIDENCE.md](EVIDENCE.md).
+
 ## How it works
 
 ```

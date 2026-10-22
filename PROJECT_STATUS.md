@@ -29,7 +29,7 @@ followed by a verified GPU/quota/pricing plan and owner approval.
 | Optional REVIEW-band escalation to Bedrock judge (`TIMESHIFT_ESCALATION`) | yes | 5 unit tests | real when enabled | **IMPLEMENTED BUT UNVERIFIED (live)**: AWS login session expired before the live check | run with dev identity |
 | Fixture recordings with screening (3 scenarios) | yes | real Decider | fixture proposals, real inference | **VERIFIED** | — |
 | AWS deployment (g6.xlarge, private, SSM; c7i CPU fallback) | CloudFormation (cfn-lint clean), GPU/CPU user-data, read-only readiness script, suggested dev IAM policy | lint only | — | **PREPARED, NOT PROVISIONED**: needs dev identity → readiness → approval | run readiness, deploy, capture evidence |
-| Confirmatory cascade evaluation (eval2, pre-registered, frozen thresholds) | cases + live config D + abstention metrics | A done; C running (CPU); B and D need Bedrock | real | **IN PROGRESS** | B, D live with dev identity |
+| Confirmatory cascade evaluation (eval2, pre-registered, frozen thresholds) | cases + live config D + abstention metrics | A and C done (C: 4 wrong commits, 3 wrong blocks, 13 reviews); B and D need Bedrock | real | **IN PROGRESS** | B, D live with dev identity |
 | Builder Center article | `docs/ARTICLE.md` with v2 benchmark + rehearsal numbers | — | — | **INCOMPLETE** | GPU latency, deployment evidence, links |
 | Demo script / submission checklist | `docs/DEMO_SCRIPT.md`, `docs/SUBMISSION_CHECKLIST.md` | — | — | drafted | record video |
 | Local git history | 7+ commits, LF-safe shell scripts, CI workflow (pytest, ruff, frontend build) | — | — | **VERIFIED locally** (CI not run: not pushed) | publish on approval |

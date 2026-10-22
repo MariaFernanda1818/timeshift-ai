@@ -158,7 +158,24 @@ so we treated it as a hypothesis to confirm.
 before any model ran (`bench/cases_eval2.py`). The band is frozen at [0.68, 0.90), and D runs
 **live**, with real Decider and real Bedrock calls inside the gate. We report wrong commits (risk),
 wrong blocks, human reviews (split by what the reviewer would face), coverage, covered accuracy,
-the measured LLM invocation rate, latency and token cost. ⟨results⟩
+the measured LLM invocation rate, latency and token cost.
+
+First confirmatory result, Decider stage only (measured):
+
+| eval2 (30 new cases) | Wrong commits | Wrong blocks | Human reviews | Coverage |
+|---|---|---|---|---|
+| A: deterministic only | 17 | 0 | 0 | 100% |
+| C: Decider, frozen threshold 0.90 | **4** | 3 | 13 | 57% |
+
+**The calibrated threshold did not hold out of sample.** On the first held-out set it gave zero
+wrong commits; on fresh cases, four should-block actions scored 0.901–0.911, just above it. Because
+those land above the escalation band, **the cascade cannot catch them either**. Before running D we
+wrote down its bounds: 9 escalations, at least 4 wrong commits, at most 26/30 correct.
+⟨PENDING: live D and B on eval2⟩
+
+This is the most important caveat in this article. A small decision model's confidence on
+*real-evidence-but-wrong* actions sits right on top of its confidence for good actions, so no
+single threshold separates them reliably at this sample size.
 
 **A null result:** a three-way `choice` question (proceed/review/deny) answered "proceed" in
 29 of 29 cases. Narrow `noul` questions with written true/false descriptions worked far better.
