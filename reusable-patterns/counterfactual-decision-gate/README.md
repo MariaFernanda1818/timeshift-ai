@@ -60,6 +60,27 @@ otherwise                                            -> REVIEW
 Thresholds are code (`Thresholds`), chosen on a calibration split, not model guarantees.
 Decider's confidence is not empirical accuracy.
 
+## Optional: adaptive escalation of the uncertain band
+
+On our benchmark a general LLM judge was more accurate than Decider alone. Decider was very good
+*when confident*. You can keep Decider as the primary, local gate and send only its uncertain band
+to a second opinion:
+
+```python
+gate = CounterfactualDecisionGate(
+    client, Thresholds(deny_below=0.68, proceed_at=0.90),
+    escalate=my_second_opinion)   # (GateRequest, state_text) -> {"verdict": "PROCEED"|"DENY"|"REVIEW", ...}
+```
+
+Invariants (unit-tested):
+- escalation runs **only** when Decider answered and landed in REVIEW;
+- it never runs after a Decider failure (still DENY) or a hard-check violation (still DENY);
+- if the second opinion fails, the verdict stays REVIEW (human).
+
+`decision.escalation` records the second opinion's verdict, probability, latency, token usage and
+request ID. TIME//SHIFT's Bedrock implementation is `src/timeshift/judge.py` (same question text,
+same thresholds as the benchmark's LLM judge).
+
 ## Strands wiring
 
 `CounterfactualGateHandler` is a Strands `InterventionHandler` that runs in
