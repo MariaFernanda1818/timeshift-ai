@@ -1,0 +1,109 @@
+AWSTemplateFormatVersion: "2010-09-09"
+Description: >
+  TIME//SHIFT single-instance deployment (app + private Strands Decider 2B + Bedrock via instance
+  role). No inbound ports: access through SSM Session Manager port forwarding. DO NOT DEPLOY
+  without owner approval (billable).
+
+Parameters:
+  InstanceType:
+    Type: String
+    Default: g6.xlarge
+    AllowedValues: [g6.xlarge, g5.xlarge, c7i.4xlarge, c7i.2xlarge]
+    Description: g6/g5 = GPU (Decider on CUDA). c7i = CPU fallback (Decider on CPU, tens of seconds per call).
+  GpuAmi:
+    Type: AWS::SSM::Parameter::Value<AWS::EC2::Image::Id>
+    Default: /aws/service/deeplearning/ami/x86_64/base-oss-nvidia-driver-gpu-ubuntu-22.04/latest/ami-id
+  CpuAmi:
+    Type: AWS::SSM::Parameter::Value<AWS::EC2::Image::Id>
+    Default: /aws/service/canonical/ubuntu/server/22.04/stable/current/amd64/hvm/ebs-gp2/ami-id
+  SubnetId:
+    Type: AWS::EC2::Subnet::Id
+    Description: Subnet with outbound internet (default-VPC public subnet is fine; no inbound rules are opened).
+  VpcId:
+    Type: AWS::EC2::VPC::Id
+  RepoUrl:
+    Type: String
+    Description: Public Git URL of the TIME//SHIFT repository (publish first, with owner approval).
+  BedrockModelId:
+    Type: String
+    Default: us.anthropic.claude-haiku-4-5-20251001-v1:0
+  BedrockFoundationModel:
+    Type: String
+    Default: anthropic.claude-haiku-4-5-20251001-v1:0
+  VolumeGiB:
+    Type: Number
+    Default: 100
+
+Conditions:
+  IsGpu: !Or [!Equals [!Ref InstanceType, g6.xlarge], !Equals [!Ref InstanceType, g5.xlarge]]
+
+Resources:
+  Role:
+    Type: AWS::IAM::Role
+    Properties:
+      AssumeRolePolicyDocument:
+        Version: "2012-10-17"
+        Statement:
+          - Effect: Allow
+            Principal: { Service: ec2.amazonaws.com }
+            Action: sts:AssumeRole
+      ManagedPolicyArns:
+        - arn:aws:iam::aws:policy/AmazonSSMManagedInstanceCore
+      Policies:
+        - PolicyName: invoke-one-bedrock-model
+          PolicyDocument:
+            Version: "2012-10-17"
+            Statement:
+              - Effect: Allow
+                Action: [bedrock:InvokeModel, bedrock:InvokeModelWithResponseStream]  # Converse/ConverseStream are authorised by these
+                Resource:
+                  - !Sub arn:aws:bedrock:*::foundation-model/${BedrockFoundationModel}
+                  - !Sub arn:aws:bedrock:${AWS::Region}:${AWS::AccountId}:inference-profile/${BedrockModelId}
+
+  Profile:
+    Type: AWS::IAM::InstanceProfile
+    Properties: { Roles: [!Ref Role] }
+
+  NoInbound:
+    Type: AWS::EC2::SecurityGroup
+    Properties:
+      GroupDescription: TIME//SHIFT - no inbound; HTTPS egress only
+      VpcId: !Ref VpcId
+      SecurityGroupEgress:
+        - { IpProtocol: tcp, FromPort: 443, ToPort: 443, CidrIp: 0.0.0.0/0, Description: "HTTPS: Bedrock, SSM, git, pip, Hugging Face" }
+        - { IpProtocol: tcp, FromPort: 80, ToPort: 80, CidrIp: 0.0.0.0/0, Description: apt mirrors }
+        - { IpProtocol: udp, FromPort: 53, ToPort: 53, CidrIp: 0.0.0.0/0, Description: DNS }
+
+  Instance:
+    Type: AWS::EC2::Instance
+    Properties:
+      InstanceType: !Ref InstanceType
+      ImageId: !If [IsGpu, !Ref GpuAmi, !Ref CpuAmi]
+      IamInstanceProfile: !Ref Profile
+      MetadataOptions: { HttpTokens: required, HttpEndpoint: enabled }
+      NetworkInterfaces:
+        - DeviceIndex: "0"
+          SubnetId: !Ref SubnetId
+          AssociatePublicIpAddress: true
+          GroupSet: [!Ref NoInbound]
+      BlockDeviceMappings:
+        - DeviceName: /dev/sda1
+          Ebs: { VolumeSize: !Ref VolumeGiB, VolumeType: gp3, Encrypted: true, DeleteOnTermination: true }
+      Tags:
+        - { Key: Name, Value: timeshift }
+        - { Key: project, Value: timeshift-hackathon }
+      UserData:
+        Fn::Base64: !Sub
+          - |
+            #!/bin/bash
+            export REPO_URL='${RepoUrl}' DEVICE='${Device}' BEDROCK_MODEL_ID='${BedrockModelId}'
+            curl -fsSL "$(echo ${RepoUrl} | sed 's#github.com#raw.githubusercontent.com#; s#\.git$##')/main/deploy/ec2/user-data.sh" -o /root/user-data.sh
+            bash /root/user-data.sh > /var/log/timeshift-setup.log 2>&1
+          - Device: !If [IsGpu, cuda, cpu]
+
+Outputs:
+  InstanceId:
+    Value: !Ref Instance
+  PortForward:
+    Description: Open the dashboard locally (no public port)
+    Value: !Sub aws ssm start-session --target ${Instance} --document-name AWS-StartPortForwardingSession --parameters portNumber=8080,localPortNumber=8080

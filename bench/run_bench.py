@@ -51,7 +51,7 @@ def build(case: Case, gate: CounterfactualDecisionGate | None) -> tuple[Mission,
 
 def run_case(case: Case, config: str, gate, judge, thresholds: Thresholds) -> dict[str, Any]:
     proc = psutil.Process()
-    m, p, fork_id = build(case, gate if config == "C" else None)
+    m, p, fork_id = build(case, gate if config in ("C", "D") else None)
     violations = m.policy_violations(p)
     rec: dict[str, Any] = {"case_id": case.case_id, "split": case.split, "config": config,
                            "scenario": case.scenario, "category": case.category,
@@ -62,7 +62,7 @@ def run_case(case: Case, config: str, gate, judge, thresholds: Thresholds) -> di
     if config == "A":
         verdict = "DENY" if violations else "PROCEED"
         rec.update(verdict=verdict, judge_latency_ms=0.0)
-    elif config == "C":
+    elif config in ("C", "D"):
         d = m.evaluate(p, fork_id)
         g = d.answers.get("evidence_grounded")
         v = d.answers.get("verdict")
@@ -74,6 +74,17 @@ def run_case(case: Case, config: str, gate, judge, thresholds: Thresholds) -> di
                               if "addresses_situation" in d.answers else None),
                    judge_latency_ms=d.decider_latency_ms, input_tokens=d.decider_input_tokens,
                    checkpoint=d.decider_checkpoint)
+        esc = d.escalation
+        rec["escalated"] = esc is not None
+        if esc is not None:
+            usage = esc.get("usage") or {}
+            rec.update(escalation_verdict=esc.get("verdict"), escalation_p=esc.get("p_true"),
+                       escalation_error=esc.get("error"),
+                       escalation_latency_ms=esc.get("latency_ms"),
+                       escalation_model=esc.get("judge"),
+                       escalation_request_id=esc.get("request_id"),
+                       escalation_input_tokens=usage.get("inputTokens"),
+                       escalation_output_tokens=usage.get("outputTokens"))
     else:  # B
         if violations:
             rec.update(verdict="DENY", judge_status="skipped", judge_latency_ms=0.0)
@@ -112,7 +123,10 @@ def run_case(case: Case, config: str, gate, judge, thresholds: Thresholds) -> di
 
 def main() -> int:
     ap = argparse.ArgumentParser()
-    ap.add_argument("--config", choices=["A", "B", "C"], required=True)
+    ap.add_argument("--config", choices=["A", "B", "C", "D"], required=True,
+                    help="D: Decider with live REVIEW-band escalation to the Bedrock judge")
+    ap.add_argument("--cases", choices=["v1", "eval2"], default="v1",
+                    help="eval2: fresh pre-registered held-out set (bench/cases_eval2.py)")
     ap.add_argument("--split", choices=["calib", "eval", "all"], default="eval")
     ap.add_argument("--out", required=True)
     ap.add_argument("--proceed-at", type=float, default=0.70)
@@ -124,7 +138,12 @@ def main() -> int:
                     help="config B: pause between Bedrock calls (new accounts are rate-limited)")
     a = ap.parse_args()
     th = Thresholds(proceed_at=a.proceed_at, deny_below=a.deny_below)
-    cases = [c for c in CASES if a.split == "all" or c.split == a.split]
+    if a.cases == "eval2":
+        from cases_eval2 import EVAL2, FROZEN_THRESHOLDS
+
+        cases = list(EVAL2)
+    else:
+        cases = [c for c in CASES if a.split == "all" or c.split == a.split]
     gate = judge = None
     if a.config == "C":
         client = DeciderClient(timeout_s=900, retries=0)
@@ -137,11 +156,23 @@ def main() -> int:
             gate = CounterfactualDecisionGate(client, th, questions=EXTENDED_QUESTIONS)
         else:
             gate = CounterfactualDecisionGate(client, th)
+    if a.config == "D":
+        # Frozen cascade: Decider band from the v1 calibration split; the judge keeps B's thresholds.
+        frozen = FROZEN_THRESHOLDS if a.cases == "eval2" else {"deny_below": 0.68,
+                                                               "proceed_at": 0.90}
+        th = Thresholds(**frozen)
+        judge_th = Thresholds()
+        judge = BedrockJudge()
+        client = DeciderClient(timeout_s=900, retries=0)
+        client.health()
+        gate = CounterfactualDecisionGate(
+            client, th, escalate=judge.escalation(judge_th.proceed_at, judge_th.deny_below))
     if a.config == "B":
         judge = BedrockJudge()
     out = pathlib.Path(a.out)
     out.parent.mkdir(parents=True, exist_ok=True)
-    meta = {"meta": True, "config": a.variant or a.config, "split": a.split, "thresholds": th.model_dump(),
+    meta = {"meta": True, "config": a.variant or a.config, "split": a.split, "cases": a.cases,
+            "thresholds": th.model_dump(),
             "started": time.strftime("%Y-%m-%dT%H:%M:%S"), "host_cpu": os.cpu_count(),
             "ram_gb": round(psutil.virtual_memory().total / 1e9, 1)}
     if gate is not None:
@@ -150,14 +181,16 @@ def main() -> int:
         f.write(json.dumps(meta) + "\n")
         for c in cases:
             rec = run_case(c, a.config, gate, judge, th)
-            if a.config == "B" and rec.get("judge_status") == "ok":
+            if (a.config == "B" and rec.get("judge_status") == "ok") or rec.get("escalated"):
                 time.sleep(a.pace_s)  # pacing only; never counted in judge_latency_ms
             f.write(json.dumps(rec, default=str) + "\n")
             f.flush()
             ok = rec["committed"] == c.should_commit
             print(f"{c.case_id} {c.category:<22} label={'commit' if c.should_commit else 'block':<6} "
                   f"-> {rec['verdict']:<7} g={rec.get('grounded')} {'OK ' if ok else 'ERR'} "
-                  f"{rec.get('judge_latency_ms')} ms", flush=True)
+                  f"{rec.get('judge_latency_ms')} ms"
+                  + (f" ESC->{rec.get('escalation_verdict')} p={rec.get('escalation_p')}"
+                     if rec.get("escalated") else ""), flush=True)
     return 0
 
 
