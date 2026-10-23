@@ -175,6 +175,41 @@ def main() -> int:
                 check(f"precreated {kind} {name}", "WARN" if code == "NoSuchEntity" else "FAIL",
                       "not created yet (owner step)" if code == "NoSuchEntity" else code)
 
+    # Real role contents vs. the repository documents (needs the read-only role-policy listing).
+    expected = {
+        "timeshift-instance-role": {"attached": {"AmazonSSMManagedInstanceCore"},
+                                    "inline": {"invoke-one-bedrock-model":
+                                               "deploy/iam/timeshift-instance-role-bedrock.json"}},
+        "timeshift-cfn-role": {"attached": set(),
+                               "inline": {"timeshift-cfn-ec2-scoped":
+                                          "deploy/iam/timeshift-cfn-role-permissions.json"}},
+    }
+    subnet = os.environ.get("DEPLOY_SUBNET_ID", "subnet-020edf22248fc4a69")
+    for role, exp in expected.items():
+        try:
+            attached = {x["PolicyName"] for x in
+                        iam.list_attached_role_policies(RoleName=role)["AttachedPolicies"]}
+            inline = set(iam.list_role_policies(RoleName=role)["PolicyNames"])
+        except ClientError as exc:
+            check(f"role policies {role}", "WARN", exc.response["Error"]["Code"])
+            continue
+        ok = attached == exp["attached"] and inline == set(exp["inline"])
+        check(f"role policies {role}", "PASS" if ok else "FAIL",
+              f"attached={sorted(attached)} inline={sorted(inline)}")
+        for name, rel in exp["inline"].items():
+            if name not in inline:
+                continue
+            real = iam.get_role_policy(RoleName=role, PolicyName=name)["PolicyDocument"]
+            raw = json.dumps(real)
+            want = json.loads((root / rel).read_text(encoding="utf-8")
+                              .replace("ACCOUNT_ID", account).replace("VPC_ID", vpc_id)
+                              .replace("SUBNET_ID", subnet))
+            placeholders = [k for k in ("ACCOUNT_ID", "VPC_ID", "SUBNET_ID") if k in raw]
+            same = json.dumps(real, sort_keys=True) == json.dumps(want, sort_keys=True)
+            check(f"inline {role}/{name}", "PASS" if same and not placeholders else "FAIL",
+                  "matches repository document" if same else
+                  f"differs from {rel}" + (f"; placeholders {placeholders}" if placeholders else ""))
+
     if not a.skip_bedrock:
         try:
             r = s.client("bedrock-runtime").converse(
