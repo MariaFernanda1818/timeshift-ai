@@ -10,7 +10,7 @@ _Last updated: 2026-10-21 (night). Deadline: 2026-10-23 11:59 PM PDT; target: su
 | # | Blocker | Why blocked | Unblocked by |
 |---|---|---|---|
 | 1 | Agent running **on AWS** (EC2 + Bedrock + Decider) | no non-root identity; deployment not approved | owner: dev identity → readiness check → approval |
-| 2 | Public GitHub repository | publication needs approval. Audit done; history rewritten to the GitHub noreply email (17 commits, trees/dates/messages verified identical, backup bundle in `C:\timeshift-ai-backup`) | owner: approve `git push origin main` (main only, no tags) |
+| 2 | ~~Public GitHub repository~~ | ✅ published 2026-10-22: `main` at 1450115, fast-forward over GitHub's signed initial commit, no tags, public (anonymous fetch HTTP 200) | — |
 | 3 | Public demo video < 3 min | should be recorded from the AWS deployment (fallback: local, labelled) | after #1, or owner accepts local recording |
 | 4 | Builder Center article published with `#strands-decider-2b` `#guardrails` | needs repo + video links and GPU/deployment numbers | after #1–#3; owner publishes |
 | 5 | ~~Bedrock re-verified with the dev identity~~ | ✅ done 2026-10-22 (request ae3a1d3c-…) | — |
