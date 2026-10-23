@@ -116,22 +116,22 @@
   },
   {
     "check": "precreated role timeshift-cfn-role",
-    "status": "WARN",
-    "detail": "not created yet (owner step)"
+    "status": "PASS",
+    "detail": "exists"
   },
   {
     "check": "precreated role timeshift-instance-role",
-    "status": "WARN",
-    "detail": "not created yet (owner step)"
+    "status": "PASS",
+    "detail": "exists"
   },
   {
     "check": "precreated instance-profile timeshift-instance-role",
-    "status": "WARN",
-    "detail": "not created yet (owner step)"
+    "status": "PASS",
+    "detail": "exists"
   },
   {
     "check": "bedrock",
     "status": "PASS",
-    "detail": "us.anthropic.claude-haiku-4-5-20251001-v1:0: 'OK', request ae3a1d3c-bdb0-4c80-8b4e-19d4bb5a99e8"
+    "detail": "us.anthropic.claude-haiku-4-5-20251001-v1:0: 'OK', request 3ca3f2c2-6961-4529-a931-13fb0e314b84"
   }
 ]

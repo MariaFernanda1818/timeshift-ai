@@ -9,10 +9,10 @@ Parameters:
   InstanceType:
     Type: String
     Default: m7i-flex.large
-    AllowedValues: [m7i-flex.large, c7i-flex.large, c7i.2xlarge, c7i.4xlarge, g6.xlarge, g5.xlarge]
+    AllowedValues: [m7i-flex.large, c7i.2xlarge, g6.xlarge]  # must match timeshift-cfn-role
     Description: >
       m7i-flex.large (2 vCPU, 8 GiB) = Free-plan CPU path (Decider on CPU + swap, slow).
-      c7i.* = larger CPU paths (paid plan). g6/g5 = GPU path (paid plan + G/VT quota).
+      c7i.2xlarge = larger CPU path (paid plan). g6.xlarge = GPU path (paid plan + G/VT quota).
   GpuAmi:
     Type: AWS::SSM::Parameter::Value<AWS::EC2::Image::Id>
     Default: /aws/service/deeplearning/ami/x86_64/base-oss-nvidia-driver-gpu-ubuntu-22.04/latest/ami-id
