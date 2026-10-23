@@ -44,24 +44,52 @@
       }
     },
     {
-      "Sid": "RunInstancesSupportingResources",
+      "Sid": "RunInstancesNetworkInDeploymentVpcOnly",
       "Effect": "Allow",
       "Action": "ec2:RunInstances",
       "Resource": [
         "arn:aws:ec2:us-east-1:ACCOUNT_ID:network-interface/*",
-        "arn:aws:ec2:us-east-1:ACCOUNT_ID:security-group/*",
-        "arn:aws:ec2:us-east-1:ACCOUNT_ID:subnet/*",
-        "arn:aws:ec2:us-east-1:ACCOUNT_ID:volume/*",
-        "arn:aws:ec2:us-east-1::image/*"
-      ]
+        "arn:aws:ec2:us-east-1:ACCOUNT_ID:security-group/*"
+      ],
+      "Condition": {
+        "ArnEquals": {
+          "ec2:Vpc": "arn:aws:ec2:us-east-1:ACCOUNT_ID:vpc/VPC_ID"
+        }
+      }
     },
     {
-      "Sid": "CreateProjectSecurityGroupInAccountVpcs",
+      "Sid": "RunInstancesInTheChosenSubnetOnly",
+      "Effect": "Allow",
+      "Action": "ec2:RunInstances",
+      "Resource": "arn:aws:ec2:us-east-1:ACCOUNT_ID:subnet/SUBNET_ID"
+    },
+    {
+      "Sid": "RunInstancesNewRootVolume",
+      "Effect": "Allow",
+      "Action": "ec2:RunInstances",
+      "Resource": "arn:aws:ec2:us-east-1:ACCOUNT_ID:volume/*"
+    },
+    {
+      "Sid": "RunInstancesFromCanonicalOrAmazonAmisOnly",
+      "Effect": "Allow",
+      "Action": "ec2:RunInstances",
+      "Resource": "arn:aws:ec2:us-east-1::image/*",
+      "Condition": {
+        "StringEquals": {
+          "ec2:Owner": [
+            "099720109477",
+            "amazon"
+          ]
+        }
+      }
+    },
+    {
+      "Sid": "CreateSecurityGroupInDeploymentVpcOnly",
       "Effect": "Allow",
       "Action": "ec2:CreateSecurityGroup",
       "Resource": [
         "arn:aws:ec2:us-east-1:ACCOUNT_ID:security-group/*",
-        "arn:aws:ec2:us-east-1:ACCOUNT_ID:vpc/*"
+        "arn:aws:ec2:us-east-1:ACCOUNT_ID:vpc/VPC_ID"
       ]
     },
     {

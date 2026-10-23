@@ -13,7 +13,7 @@ Design:
 | `timeshift-cfn-role-permissions.json` + `timeshift-cfn-role-trust.json` | role `timeshift-cfn-role` | before deploy |
 | `timeshift-dev-deploy-temp.json` | group `timeshift-developers` (managed policy `timeshift-dev-deploy-temp`) | only after deployment approval; detach after teardown |
 
-Replace `ACCOUNT_ID` with the 12-digit account ID. Replace `VPC_ID` with the default VPC ID (reported by
+Replace `ACCOUNT_ID` with the 12-digit account ID, `VPC_ID` with the deployment VPC and `SUBNET_ID` with the deployment subnet (reported by
 `scripts/aws_readiness.py`). Ready-to-paste copies with the ID substituted are generated outside
 the repository so the account ID never enters Git.
 
