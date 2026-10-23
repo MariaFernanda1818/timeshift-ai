@@ -27,13 +27,19 @@
     {
       "Sid": "ReadPublicAmiParameters",
       "Effect": "Allow",
-      "Action": ["ssm:GetParameter", "ssm:GetParameters"],
+      "Action": [
+        "ssm:GetParameter",
+        "ssm:GetParameters"
+      ],
       "Resource": "arn:aws:ssm:us-east-1::parameter/aws/service/*"
     },
     {
       "Sid": "ReadProjectRolesOnly",
       "Effect": "Allow",
-      "Action": ["iam:GetRole", "iam:GetInstanceProfile"],
+      "Action": [
+        "iam:GetRole",
+        "iam:GetInstanceProfile"
+      ],
       "Resource": [
         "arn:aws:iam::ACCOUNT_ID:role/timeshift-*",
         "arn:aws:iam::ACCOUNT_ID:instance-profile/timeshift-*"
@@ -42,11 +48,24 @@
     {
       "Sid": "InvokeTheProjectModelOnly",
       "Effect": "Allow",
-      "Action": ["bedrock:InvokeModel", "bedrock:InvokeModelWithResponseStream"],
+      "Action": [
+        "bedrock:InvokeModel",
+        "bedrock:InvokeModelWithResponseStream"
+      ],
       "Resource": [
         "arn:aws:bedrock:*::foundation-model/anthropic.claude-haiku-4-5-20251001-v1:0",
         "arn:aws:bedrock:us-east-1:ACCOUNT_ID:inference-profile/us.anthropic.claude-haiku-4-5-20251001-v1:0"
       ]
+    },
+    {
+      "Sid": "ReadProjectRolePoliciesOnly",
+      "Effect": "Allow",
+      "Action": [
+        "iam:ListAttachedRolePolicies",
+        "iam:ListRolePolicies",
+        "iam:GetRolePolicy"
+      ],
+      "Resource": "arn:aws:iam::ACCOUNT_ID:role/timeshift-*"
     }
   ]
 }
