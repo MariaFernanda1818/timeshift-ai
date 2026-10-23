@@ -1,6 +1,6 @@
 # AWS deployment
 
-**Status (2026-10-21): PREPARED, NOT PROVISIONED.** Nothing here has been run against AWS yet, except
+**Status (2026-10-22): PREPARED, NOT PROVISIONED.** Nothing here has been run against AWS yet, except
 the Bedrock invocations recorded in EVIDENCE.md. Provisioning needs (1) the restricted developer
 identity, (2) a passing readiness check and (3) explicit owner approval.
 
@@ -15,14 +15,15 @@ operator laptop --SSM port forward (no inbound ports)--> EC2 (private by policy,
 
 - One CloudFormation stack: [`deploy/cfn/timeshift.yaml`](../deploy/cfn/timeshift.yaml)
   (`cfn-lint` clean). It contains the instance, a security group with **no inbound rules** and egress
-  limited to 443/80/53, IMDSv2 required, an encrypted gp3 root volume, and an instance role with
-  `AmazonSSMManagedInstanceCore` plus InvokeModel on one Bedrock model.
+  limited to 443/80/53, IMDSv2 required, and an encrypted gp3 root volume. **It creates no IAM
+  resources.** It uses the pre-created instance profile `timeshift-instance-role` (SSM core + InvokeModel
+  on one Bedrock model) and is deployed through the pre-created service role `timeshift-cfn-role`.
 - Setup script: [`deploy/ec2/user-data.sh`](../deploy/ec2/user-data.sh). It installs the app and Decider,
   then creates two systemd services (`DEVICE=cuda|cpu`).
-- Suggested policy for the developer identity:
-  [`deploy/iam/dev-identity-policy.json`](../deploy/iam/dev-identity-policy.json). It covers read-only
-  readiness checks, one Bedrock model, this stack only, and SSM sessions to tagged project instances.
-  Replace `ACCOUNT_ID`. *Not yet tested against IAM; validate with IAM Access Analyzer.*
+- IAM: see [`deploy/iam/README.md`](../deploy/iam/README.md). A read-only **readiness** policy is attached
+  now. A **temporary deploy** policy is attached only after approval. The pre-created CloudFormation
+  and instance roles leave the developer identity no IAM write permissions and no escalation path.
+  All five documents are validated with IAM Access Analyzer by `scripts/aws_readiness.py`.
 
 ## Account constraints and the two deployment paths
 
@@ -96,9 +97,10 @@ path allows at most ~15 instance-hours in total.
 The repository must be public first (owner approval), because the instance clones it.
 
 ```bash
-aws cloudformation create-stack --stack-name timeshift --capabilities CAPABILITY_IAM \
+aws cloudformation create-stack --profile timeshift-dev --region us-east-1 --stack-name timeshift \
+  --role-arn arn:aws:iam::<ACCOUNT_ID>:role/timeshift-cfn-role \
   --template-body file://deploy/cfn/timeshift.yaml \
-  --parameters ParameterKey=InstanceType,ParameterValue=g6.xlarge \
+  --parameters ParameterKey=InstanceType,ParameterValue=m7i-flex.large \
                ParameterKey=VpcId,ParameterValue=<vpc> ParameterKey=SubnetId,ParameterValue=<subnet> \
                ParameterKey=RepoUrl,ParameterValue=https://github.com/<owner>/timeshift-ai.git
 aws cloudformation wait stack-create-complete --stack-name timeshift
@@ -127,4 +129,5 @@ The check confirms the stack is gone, no tagged instance is in any non-terminate
 project EBS volume, stack security group or stack IAM role remains. Save its output to
 `docs/deployment/teardown.txt`.
 
-The root volume has `DeleteOnTermination: true`. The role and instance profile are deleted with the stack.
+The root volume has `DeleteOnTermination: true`. The stack creates no IAM resources. The pre-created
+roles stay until the owner deletes them (see `deploy/iam/README.md`, Step 4).

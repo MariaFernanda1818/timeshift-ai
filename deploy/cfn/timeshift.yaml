@@ -1,8 +1,9 @@
 AWSTemplateFormatVersion: "2010-09-09"
 Description: >
-  TIME//SHIFT single-instance deployment (app + private Strands Decider 2B + Bedrock via instance
-  role). No inbound ports: access through SSM Session Manager port forwarding. DO NOT DEPLOY
-  without owner approval (billable).
+  TIME//SHIFT single-instance deployment (app + private Strands Decider 2B + Bedrock via a
+  PRE-CREATED instance role). Creates no IAM resources. Must be deployed with the pre-created
+  CloudFormation service role (timeshift-cfn-role). No inbound ports: SSM port forwarding only.
+  DO NOT DEPLOY without owner approval (billable).
 
 Parameters:
   InstanceType:
@@ -29,9 +30,10 @@ Parameters:
   BedrockModelId:
     Type: String
     Default: us.anthropic.claude-haiku-4-5-20251001-v1:0
-  BedrockFoundationModel:
+  InstanceProfileName:
     Type: String
-    Default: anthropic.claude-haiku-4-5-20251001-v1:0
+    Default: timeshift-instance-role
+    Description: Pre-created instance profile (SSM core + Bedrock invoke on one model). See deploy/iam/README.md.
   VolumeGiB:
     Type: Number
     Default: 0
@@ -42,37 +44,13 @@ Conditions:
   AutoVolume: !Equals [!Ref VolumeGiB, 0]
 
 Resources:
-  Role:
-    Type: AWS::IAM::Role
-    Properties:
-      AssumeRolePolicyDocument:
-        Version: "2012-10-17"
-        Statement:
-          - Effect: Allow
-            Principal: { Service: ec2.amazonaws.com }
-            Action: sts:AssumeRole
-      ManagedPolicyArns:
-        - arn:aws:iam::aws:policy/AmazonSSMManagedInstanceCore
-      Policies:
-        - PolicyName: invoke-one-bedrock-model
-          PolicyDocument:
-            Version: "2012-10-17"
-            Statement:
-              - Effect: Allow
-                Action: [bedrock:InvokeModel, bedrock:InvokeModelWithResponseStream]  # Converse/ConverseStream are authorised by these
-                Resource:
-                  - !Sub arn:aws:bedrock:*::foundation-model/${BedrockFoundationModel}
-                  - !Sub arn:aws:bedrock:${AWS::Region}:${AWS::AccountId}:inference-profile/${BedrockModelId}
-
-  Profile:
-    Type: AWS::IAM::InstanceProfile
-    Properties: { Roles: [!Ref Role] }
-
   NoInbound:
     Type: AWS::EC2::SecurityGroup
     Properties:
       GroupDescription: TIME//SHIFT - no inbound; HTTPS egress only
       VpcId: !Ref VpcId
+      Tags:
+        - { Key: project, Value: timeshift-hackathon }
       SecurityGroupEgress:
         - { IpProtocol: tcp, FromPort: 443, ToPort: 443, CidrIp: 0.0.0.0/0, Description: "HTTPS: Bedrock, SSM, git, pip, Hugging Face" }
         - { IpProtocol: tcp, FromPort: 80, ToPort: 80, CidrIp: 0.0.0.0/0, Description: apt mirrors }
@@ -83,7 +61,8 @@ Resources:
     Properties:
       InstanceType: !Ref InstanceType
       ImageId: !If [IsGpu, !Ref GpuAmi, !Ref CpuAmi]
-      IamInstanceProfile: !Ref Profile
+      IamInstanceProfile: !Ref InstanceProfileName
+      PropagateTagsToVolumeOnCreation: true
       MetadataOptions: { HttpTokens: required, HttpEndpoint: enabled }
       NetworkInterfaces:
         - DeviceIndex: "0"

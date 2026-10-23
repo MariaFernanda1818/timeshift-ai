@@ -1,0 +1,167 @@
+{
+  "Version": "2012-10-17",
+  "Statement": [
+    {
+      "Sid": "DescribeForStackOperations",
+      "Effect": "Allow",
+      "Action": [
+        "ec2:DescribeInstances",
+        "ec2:DescribeInstanceStatus",
+        "ec2:DescribeSecurityGroups",
+        "ec2:DescribeSubnets",
+        "ec2:DescribeVpcs",
+        "ec2:DescribeImages",
+        "ec2:DescribeVolumes",
+        "ec2:DescribeNetworkInterfaces",
+        "ec2:DescribeTags",
+        "ec2:DescribeInstanceAttribute",
+        "ec2:DescribeAccountAttributes"
+      ],
+      "Resource": "*"
+    },
+    {
+      "Sid": "ResolvePublicAmiParameters",
+      "Effect": "Allow",
+      "Action": [
+        "ssm:GetParameters",
+        "ssm:GetParameter"
+      ],
+      "Resource": "arn:aws:ssm:us-east-1::parameter/aws/service/*"
+    },
+    {
+      "Sid": "LaunchOnlyApprovedInstanceTypes",
+      "Effect": "Allow",
+      "Action": "ec2:RunInstances",
+      "Resource": "arn:aws:ec2:us-east-1:ACCOUNT_ID:instance/*",
+      "Condition": {
+        "StringEquals": {
+          "ec2:InstanceType": [
+            "m7i-flex.large",
+            "c7i.2xlarge",
+            "g6.xlarge"
+          ]
+        }
+      }
+    },
+    {
+      "Sid": "RunInstancesSupportingResources",
+      "Effect": "Allow",
+      "Action": "ec2:RunInstances",
+      "Resource": [
+        "arn:aws:ec2:us-east-1:ACCOUNT_ID:network-interface/*",
+        "arn:aws:ec2:us-east-1:ACCOUNT_ID:security-group/*",
+        "arn:aws:ec2:us-east-1:ACCOUNT_ID:subnet/*",
+        "arn:aws:ec2:us-east-1:ACCOUNT_ID:volume/*",
+        "arn:aws:ec2:us-east-1::image/*"
+      ]
+    },
+    {
+      "Sid": "CreateProjectSecurityGroupInAccountVpcs",
+      "Effect": "Allow",
+      "Action": "ec2:CreateSecurityGroup",
+      "Resource": [
+        "arn:aws:ec2:us-east-1:ACCOUNT_ID:security-group/*",
+        "arn:aws:ec2:us-east-1:ACCOUNT_ID:vpc/*"
+      ]
+    },
+    {
+      "Sid": "TagOnlyAtCreation",
+      "Effect": "Allow",
+      "Action": "ec2:CreateTags",
+      "Resource": [
+        "arn:aws:ec2:us-east-1:ACCOUNT_ID:instance/*",
+        "arn:aws:ec2:us-east-1:ACCOUNT_ID:volume/*",
+        "arn:aws:ec2:us-east-1:ACCOUNT_ID:network-interface/*",
+        "arn:aws:ec2:us-east-1:ACCOUNT_ID:security-group/*"
+      ],
+      "Condition": {
+        "StringEquals": {
+          "ec2:CreateAction": [
+            "RunInstances",
+            "CreateSecurityGroup"
+          ]
+        }
+      }
+    },
+    {
+      "Sid": "TagWithProjectTagOnly",
+      "Effect": "Allow",
+      "Action": "ec2:CreateTags",
+      "Resource": [
+        "arn:aws:ec2:us-east-1:ACCOUNT_ID:instance/*",
+        "arn:aws:ec2:us-east-1:ACCOUNT_ID:volume/*",
+        "arn:aws:ec2:us-east-1:ACCOUNT_ID:network-interface/*",
+        "arn:aws:ec2:us-east-1:ACCOUNT_ID:security-group/*"
+      ],
+      "Condition": {
+        "StringEquals": {
+          "aws:RequestTag/project": "timeshift-hackathon"
+        }
+      }
+    },
+    {
+      "Sid": "RetagProjectResourcesOnly",
+      "Effect": "Allow",
+      "Action": "ec2:CreateTags",
+      "Resource": [
+        "arn:aws:ec2:us-east-1:ACCOUNT_ID:instance/*",
+        "arn:aws:ec2:us-east-1:ACCOUNT_ID:volume/*",
+        "arn:aws:ec2:us-east-1:ACCOUNT_ID:network-interface/*",
+        "arn:aws:ec2:us-east-1:ACCOUNT_ID:security-group/*"
+      ],
+      "Condition": {
+        "StringEquals": {
+          "aws:ResourceTag/project": "timeshift-hackathon"
+        }
+      }
+    },
+    {
+      "Sid": "ModifyAndDeleteOnlyProjectTaggedResources",
+      "Effect": "Allow",
+      "Action": [
+        "ec2:TerminateInstances",
+        "ec2:DeleteSecurityGroup"
+      ],
+      "Resource": [
+        "arn:aws:ec2:us-east-1:ACCOUNT_ID:instance/*",
+        "arn:aws:ec2:us-east-1:ACCOUNT_ID:security-group/*"
+      ],
+      "Condition": {
+        "StringEquals": {
+          "aws:ResourceTag/project": "timeshift-hackathon"
+        }
+      }
+    },
+    {
+      "Sid": "EgressRulesOnlyInTheDeploymentVpc",
+      "Effect": "Allow",
+      "Action": [
+        "ec2:AuthorizeSecurityGroupEgress",
+        "ec2:RevokeSecurityGroupEgress"
+      ],
+      "Resource": "arn:aws:ec2:us-east-1:ACCOUNT_ID:security-group/*",
+      "Condition": {
+        "ArnEquals": {
+          "ec2:Vpc": "arn:aws:ec2:us-east-1:ACCOUNT_ID:vpc/VPC_ID"
+        }
+      }
+    },
+    {
+      "Sid": "PassOnlyThePreCreatedInstanceRoleToEc2",
+      "Effect": "Allow",
+      "Action": "iam:PassRole",
+      "Resource": "arn:aws:iam::ACCOUNT_ID:role/timeshift-instance-role",
+      "Condition": {
+        "StringEquals": {
+          "iam:PassedToService": "ec2.amazonaws.com"
+        }
+      }
+    },
+    {
+      "Sid": "ReadThePreCreatedInstanceProfile",
+      "Effect": "Allow",
+      "Action": "iam:GetInstanceProfile",
+      "Resource": "arn:aws:iam::ACCOUNT_ID:instance-profile/timeshift-instance-role"
+    }
+  ]
+}

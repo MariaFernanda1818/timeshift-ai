@@ -34,6 +34,15 @@ QUOTAS = {"L-DB2E81BA": "Running On-Demand G and VT instances (vCPU)",
 GPU_AMI_PARAM = "/aws/service/deeplearning/ami/x86_64/base-oss-nvidia-driver-gpu-ubuntu-22.04/latest/ami-id"
 CPU_AMI_PARAM = "/aws/service/canonical/ubuntu/server/22.04/stable/current/amd64/hvm/ebs-gp2/ami-id"
 MODEL = os.environ.get("BEDROCK_MODEL_ID", "us.anthropic.claude-haiku-4-5-20251001-v1:0")
+POLICIES = {  # file -> IAM Access Analyzer policy type
+    "deploy/iam/timeshift-dev-readiness.json": "IDENTITY_POLICY",
+    "deploy/iam/timeshift-dev-deploy-temp.json": "IDENTITY_POLICY",
+    "deploy/iam/timeshift-cfn-role-permissions.json": "IDENTITY_POLICY",
+    "deploy/iam/timeshift-instance-role-bedrock.json": "IDENTITY_POLICY",
+    "deploy/iam/timeshift-cfn-role-trust.json": "RESOURCE_POLICY",
+}
+PRECREATED = {"role": ["timeshift-cfn-role", "timeshift-instance-role"],
+              "instance-profile": ["timeshift-instance-role"]}
 
 results: list[dict[str, Any]] = []
 
@@ -70,8 +79,9 @@ def main() -> int:
     ap = argparse.ArgumentParser()
     ap.add_argument("--json", default=None)
     ap.add_argument("--skip-bedrock", action="store_true")
+    ap.add_argument("--profile", default=os.environ.get("AWS_PROFILE"))
     a = ap.parse_args()
-    s = boto3.Session(region_name=REGION)
+    s = boto3.Session(profile_name=a.profile, region_name=REGION)
 
     try:
         arn = s.client("sts").get_caller_identity()["Arn"]
@@ -98,6 +108,7 @@ def main() -> int:
             check(f"quota {code}", "WARN", f"{label}: {type(exc).__name__}: {exc}")
 
     ec2 = s.client("ec2")
+    vpcs: list[dict[str, Any]] = []
     try:
         offers = ec2.describe_instance_type_offerings(
             LocationType="availability-zone",
@@ -133,6 +144,36 @@ def main() -> int:
               vpcs[0]["VpcId"] if vpcs else "no default VPC: pass SubnetId explicitly")
     except (ClientError, BotoCoreError) as exc:
         check("default_vpc", "WARN", f"{type(exc).__name__}: {exc}")
+
+    account = arn.split(":")[4]
+    aa = s.client("accessanalyzer")
+    root = __import__("pathlib").Path(__file__).resolve().parents[1]
+    vpc_id = vpcs[0]["VpcId"] if vpcs else "VPC_ID"
+    for rel, ptype in POLICIES.items():
+        doc = (root / rel).read_text(encoding="utf-8").replace("ACCOUNT_ID", account)
+        doc = doc.replace("VPC_ID", vpc_id)
+        try:
+            kw = {"policyDocument": doc, "policyType": ptype}
+            if ptype == "RESOURCE_POLICY":
+                kw["validatePolicyResourceType"] = "AWS::IAM::AssumeRolePolicyDocument"
+            findings = aa.validate_policy(**kw)["findings"]
+            bad = [f for f in findings if f["findingType"] in ("ERROR", "SECURITY_WARNING")]
+            check(f"policy {rel.split('/')[-1]}", "FAIL" if bad else "PASS",
+                  "; ".join(f"{f['findingType']} {f['issueCode']}" for f in findings) or "no findings")
+        except (ClientError, BotoCoreError) as exc:
+            check(f"policy {rel.split('/')[-1]}", "WARN", f"{type(exc).__name__}: {exc}")
+
+    iam = s.client("iam")
+    for kind, names in PRECREATED.items():
+        for name in names:
+            try:
+                (iam.get_role(RoleName=name) if kind == "role"
+                 else iam.get_instance_profile(InstanceProfileName=name))
+                check(f"precreated {kind} {name}", "PASS", "exists")
+            except ClientError as exc:
+                code = exc.response["Error"]["Code"]
+                check(f"precreated {kind} {name}", "WARN" if code == "NoSuchEntity" else "FAIL",
+                      "not created yet (owner step)" if code == "NoSuchEntity" else code)
 
     if not a.skip_bedrock:
         try:

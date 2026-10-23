@@ -38,7 +38,7 @@ template (cfn-lint clean), read-only readiness script, repository audit.
 | **Total** | | | **≈ $7–13** | stack deleted after recording |
 
 ### Exact owner actions
-1. Create the non-root developer identity (suggested policy: `deploy/iam/dev-identity-policy.json`) and share the profile name.
+1. ✅ Non-root identity `timeshift-dev` verified (CLI and boto3: `...:user/timeshift-dev`). Next: attach `timeshift-dev-readiness` (see `deploy/iam/README.md`).
 2. Check Billing → Credits for EC2 GPU/Bedrock eligibility, and request the G/VT quota (≥ 4 vCPU) if it is 0.
 3. Approve: (a) the deployment path and cost, (b) publishing the GitHub repo (and which author email to keep public), (c) uploading the video, (d) publishing the article.
 4. Close memory-heavy apps before recording (IntelliJ, browser tabs): the laptop had 1–2 GB free RAM during runs.

@@ -3,8 +3,7 @@
     AWS_PROFILE=<dev-profile> python scripts/aws_teardown_check.py --stack timeshift
 
 Checks: CloudFormation stack deleted, no non-terminated instances tagged project=timeshift-hackathon,
-no EBS volumes tagged for the project or left over from the instance, no security groups or IAM
-roles created by the stack. Exit code 0 only if everything is gone.
+no EBS volumes tagged for the project or left over from the instance, no stack security groups. Exit code 0 only if everything is gone.
 """
 
 from __future__ import annotations
@@ -22,8 +21,9 @@ TAG = ("project", "timeshift-hackathon")
 def main() -> int:
     ap = argparse.ArgumentParser()
     ap.add_argument("--stack", default="timeshift")
+    ap.add_argument("--profile", default=os.environ.get("AWS_PROFILE"))
     a = ap.parse_args()
-    s = boto3.Session(region_name=os.environ.get("AWS_REGION", "us-east-1"))
+    s = boto3.Session(profile_name=a.profile, region_name=os.environ.get("AWS_REGION", "us-east-1"))
     problems: list[str] = []
 
     cfn = s.client("cloudformation")
@@ -55,18 +55,15 @@ def main() -> int:
     for g in sgs:
         problems.append(f"security group {g['GroupId']}")
 
-    iam = s.client("iam")
-    for page in iam.get_paginator("list_roles").paginate():
-        for role in page["Roles"]:
-            if role["RoleName"].startswith(f"{a.stack}-Role"):
-                problems.append(f"IAM role {role['RoleName']}")
-
     if problems:
         print("NOT CLEAN:")
         for p in problems:
             print("  -", p)
         return 1
-    print(f"CLEAN: stack '{a.stack}' and all tagged instances, volumes, security groups and roles are gone.")
+    print(f"CLEAN: stack '{a.stack}' and all tagged instances, volumes and security groups are gone.")
+    print("Reminder (owner, console): the stack creates no IAM resources. When the hackathon is over,"
+          " delete the pre-created roles timeshift-cfn-role and timeshift-instance-role and detach"
+          " timeshift-dev-deploy-temp from the group.")
     return 0
 
 

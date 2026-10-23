@@ -1,0 +1,52 @@
+{
+  "Version": "2012-10-17",
+  "Statement": [
+    {
+      "Sid": "AccountAndCapacityReadOnly",
+      "Effect": "Allow",
+      "Action": [
+        "servicequotas:GetServiceQuota",
+        "servicequotas:ListServiceQuotas",
+        "ec2:DescribeInstanceTypeOfferings",
+        "ec2:DescribeInstanceTypes",
+        "ec2:DescribeVpcs",
+        "ec2:DescribeSubnets",
+        "ec2:DescribeImages",
+        "ec2:DescribeInstances",
+        "ec2:DescribeVolumes",
+        "ec2:DescribeSecurityGroups",
+        "pricing:GetProducts",
+        "bedrock:ListFoundationModels",
+        "bedrock:GetFoundationModel",
+        "cloudformation:ValidateTemplate",
+        "cloudformation:DescribeStacks",
+        "access-analyzer:ValidatePolicy"
+      ],
+      "Resource": "*"
+    },
+    {
+      "Sid": "ReadPublicAmiParameters",
+      "Effect": "Allow",
+      "Action": ["ssm:GetParameter", "ssm:GetParameters"],
+      "Resource": "arn:aws:ssm:us-east-1::parameter/aws/service/*"
+    },
+    {
+      "Sid": "ReadProjectRolesOnly",
+      "Effect": "Allow",
+      "Action": ["iam:GetRole", "iam:GetInstanceProfile"],
+      "Resource": [
+        "arn:aws:iam::ACCOUNT_ID:role/timeshift-*",
+        "arn:aws:iam::ACCOUNT_ID:instance-profile/timeshift-*"
+      ]
+    },
+    {
+      "Sid": "InvokeTheProjectModelOnly",
+      "Effect": "Allow",
+      "Action": ["bedrock:InvokeModel", "bedrock:InvokeModelWithResponseStream"],
+      "Resource": [
+        "arn:aws:bedrock:*::foundation-model/anthropic.claude-haiku-4-5-20251001-v1:0",
+        "arn:aws:bedrock:us-east-1:ACCOUNT_ID:inference-profile/us.anthropic.claude-haiku-4-5-20251001-v1:0"
+      ]
+    }
+  ]
+}
