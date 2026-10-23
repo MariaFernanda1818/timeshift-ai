@@ -220,3 +220,12 @@ Identity `arn:aws:iam::<ACCOUNT>:user/timeshift-dev` (not root, no long-term key
 
 Not verifiable through APIs: whether the Free plan allows launching m7i-flex.large (third-party lists say
 yes), and credit eligibility. Both need an owner console check.
+
+### Pre-created roles verified against the repository (2026-10-22) [measured, read-only]
+After the owner added read-only role-policy listing to `timeshift-dev-readiness`, `aws_readiness.py` compared
+the real roles with `deploy/iam/*.json`:
+- `timeshift-instance-role`: attached `AmazonSSMManagedInstanceCore`, inline `invoke-one-bedrock-model`, and the
+  inline document **matches** the repository (after substituting account/VPC/subnet).
+- `timeshift-cfn-role`: no attached policies, inline `timeshift-cfn-ec2-scoped`, which **matches** the repository.
+  Its trust is `cloudformation.amazonaws.com` only.
+- Bedrock again OK (request `0c6abc70-cc6a-4a49-b894-128327d0bbb5`). Session Manager plugin 1.2.896.0 installed.

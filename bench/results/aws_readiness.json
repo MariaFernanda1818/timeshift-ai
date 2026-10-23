@@ -130,8 +130,28 @@
     "detail": "exists"
   },
   {
+    "check": "role policies timeshift-instance-role",
+    "status": "PASS",
+    "detail": "attached=['AmazonSSMManagedInstanceCore'] inline=['invoke-one-bedrock-model']"
+  },
+  {
+    "check": "inline timeshift-instance-role/invoke-one-bedrock-model",
+    "status": "PASS",
+    "detail": "matches repository document"
+  },
+  {
+    "check": "role policies timeshift-cfn-role",
+    "status": "PASS",
+    "detail": "attached=[] inline=['timeshift-cfn-ec2-scoped']"
+  },
+  {
+    "check": "inline timeshift-cfn-role/timeshift-cfn-ec2-scoped",
+    "status": "PASS",
+    "detail": "matches repository document"
+  },
+  {
     "check": "bedrock",
     "status": "PASS",
-    "detail": "us.anthropic.claude-haiku-4-5-20251001-v1:0: 'OK', request 3ca3f2c2-6961-4529-a931-13fb0e314b84"
+    "detail": "us.anthropic.claude-haiku-4-5-20251001-v1:0: 'OK', request 0c6abc70-cc6a-4a49-b894-128327d0bbb5"
   }
 ]
