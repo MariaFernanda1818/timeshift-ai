@@ -1,0 +1,46 @@
+{
+  "label": "aws-m7i-flex",
+  "captured_at": "20261022-212650",
+  "base": "http://127.0.0.1:18080",
+  "mission_id": "1597587b64",
+  "proposer": "bedrock",
+  "wall_s": 275.5,
+  "decider": {
+    "checkpoint": "StrandsAgents/strands-decider-2B-qwen3.5-v1-2610",
+    "device": "cpu",
+    "status": "ok"
+  },
+  "decisions": [
+    {
+      "action": "activate_backup_power()",
+      "verdict": "PROCEED",
+      "evidence_grounded": 0.8054,
+      "decider_latency_ms": 182147.52,
+      "decider_status": "ok"
+    },
+    {
+      "action": "repair_solar_array(crew_id=C1)",
+      "verdict": "PROCEED",
+      "evidence_grounded": 0.7306,
+      "decider_latency_ms": 37233.93,
+      "decider_status": "ok"
+    },
+    {
+      "action": "isolate_module(module_id=HAB)",
+      "verdict": "DENY",
+      "evidence_grounded": 0.3171,
+      "decider_latency_ms": 34233.35,
+      "decider_status": "ok"
+    }
+  ],
+  "committed": [
+    "activate_backup_power"
+  ],
+  "bedrock_usage": {
+    "input_tokens": 11718,
+    "output_tokens": 1489,
+    "total_tokens": 13207,
+    "latency_ms": 14372
+  },
+  "final_status": "done"
+}

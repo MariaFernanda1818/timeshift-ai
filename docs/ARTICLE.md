@@ -213,7 +213,24 @@ in 5 of 5 rehearsals.
 The 2B model runs on a CPU-only laptop, which is great for development and offline
 benchmarks, but tens of seconds per decision is too slow for a live loop. Deployment target:
 a single private g6.xlarge (NVIDIA L4), with the app and Decider bound to localhost, access via
-SSM, and a least-privilege IAM role for one Bedrock model. ⟨PENDING: deployment evidence.⟩
+SSM, and a least-privilege IAM role for one Bedrock model.
+
+**What we actually deployed.** The account is on the AWS Free plan and its GPU quota is 0, so we
+deployed the CPU path: one **m7i-flex.large** (2 vCPU, 8 GiB) in us-east-1. The stack is created by a
+restricted IAM user through a pre-created CloudFormation service role, the instance has no inbound
+ports, and access is through SSM. From launch, the app answered in under 2 minutes and Decider was
+ready in about 3. A real mission on the instance (Bedrock via the instance role + Decider on CPU)
+took 275 s end to end:
+
+| Branch | Proposed by | Sim score | `evidence_grounded` | Verdict | Decider latency |
+|---|---|---|---|---|---|
+| isolate HAB | anomaly classifier | 0.772 (#1) | 0.317 | DENY | 34 s |
+| activate backup power | Bedrock | 0.760 | 0.805 | committed | 182 s (cold) |
+| repair solar array | Bedrock | 0.755 | 0.731 | approved, not chosen | 37 s |
+
+Bedrock used 13.2k tokens. On this run the structured explanation was **withheld** by our claim
+checker, because the model wrote the grounding score as "80.54" and cited "0.075", numbers that do
+not appear in the simulation packet. We count that as the safeguard working, not as a success to hide.
 
 ## Limitations
 

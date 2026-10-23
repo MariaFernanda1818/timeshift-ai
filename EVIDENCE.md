@@ -229,3 +229,31 @@ the real roles with `deploy/iam/*.json`:
 - `timeshift-cfn-role`: no attached policies, inline `timeshift-cfn-ec2-scoped`, which **matches** the repository.
   Its trust is `cloudformation.amazonaws.com` only.
 - Bedrock again OK (request `0c6abc70-cc6a-4a49-b894-128327d0bbb5`). Session Manager plugin 1.2.896.0 installed.
+
+## AWS deployment: real end-to-end run on EC2 (2026-10-23 UTC) [measured]
+
+Stack `timeshift` created by `timeshift-dev` through the pre-created `timeshift-cfn-role`
+(CREATE_COMPLETE in 28 s; resources: one security group, one instance, no IAM resources).
+Instance `i-009e658c03982c58a`, **m7i-flex.large** (2 vCPU, 8 GiB, Free-plan eligible), us-east-1a,
+IMDSv2 required, instance profile `timeshift-instance-role`, 40 GiB gp3 encrypted volume.
+Access only via SSM port forwarding (no inbound rules).
+
+Timeline (UTC): launch 02:23:31 → app API answering through SSM 02:25:15 → **Decider `status: ok`
+02:26:37** (`StrandsAgents/strands-decider-2B-qwen3.5-v1-2610`, device `cpu`, prefix cache on).
+
+Mission `1597587b64` (signature scenario `solar_cascade`, proposer **Bedrock via the instance role**),
+captured with `scripts/capture_deployment_evidence.py` → `docs/deployment/aws-m7i-flex-20261022-212650-*`:
+
+| Branch | Proposed by | Sim score | Decider `evidence_grounded` | Verdict | Decider latency (EC2 CPU) |
+|---|---|---|---|---|---|
+| isolate HAB | anomaly classifier (unvalidated) | **0.772 (#1)** | **0.317** | **DENY** | 34.2 s |
+| activate backup power | Bedrock | 0.760 | 0.805 | PROCEED → **committed** | 182.1 s (first call, cold) |
+| repair solar array (C1) | Bedrock | 0.755 | 0.731 | PROCEED (not chosen) | 37.2 s |
+
+- Bedrock (Claude Haiku 4.5): 13,207 tokens (11,718 in / 1,489 out), 14.4 s model time, 3 tool calls.
+- End-to-end mission wall time: 275.5 s (dominated by Decider on 2 vCPU; the first call includes warm-up).
+- **Structured explanation was withheld by the deterministic claim check**: Bedrock cited `80.54` (the
+  0.8054 grounding written as a percentage with two decimals) and `0.075`, which are not in the
+  simulation packet. The safeguard behaved as designed. The UI shows "UNSUPPORTED CLAIMS" instead of the text.
+- The same outcome as the 5 local rehearsals: the simulator's top branch was the unsupported one and
+  Decider denied it.
