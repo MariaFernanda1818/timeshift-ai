@@ -13,7 +13,7 @@ _Last updated: 2026-10-21 (night). Deadline: 2026-10-23 11:59 PM PDT; target: su
 | 2 | Public GitHub repository | publication needs approval. Audit done; history rewritten to the GitHub noreply email (17 commits, trees/dates/messages verified identical, backup bundle in `C:\timeshift-ai-backup`) | owner: approve `git push origin main` (main only, no tags) |
 | 3 | Public demo video < 3 min | should be recorded from the AWS deployment (fallback: local, labelled) | after #1, or owner accepts local recording |
 | 4 | Builder Center article published with `#strands-decider-2b` `#guardrails` | needs repo + video links and GPU/deployment numbers | after #1–#3; owner publishes |
-| 5 | Bedrock re-verified with the dev identity | the earlier verification used a temporary root session | dev identity |
+| 5 | ~~Bedrock re-verified with the dev identity~~ | ✅ done 2026-10-22 (request ae3a1d3c-…) | — |
 
 ### Done and verified (local)
 Simulator + FORK REALITY, branch screening, deterministic policy + temporal checks, Decider 2B gate
@@ -38,7 +38,7 @@ template (cfn-lint clean), read-only readiness script, repository audit.
 | **Total** | | | **≈ $7–13** | stack deleted after recording |
 
 ### Exact owner actions
-1. ✅ Non-root identity `timeshift-dev` verified (CLI and boto3: `...:user/timeshift-dev`). Next: attach `timeshift-dev-readiness` (see `deploy/iam/README.md`).
+1. ✅ Identity `timeshift-dev` verified; ✅ readiness policy attached; ✅ readiness run (Bedrock OK, 5 policies valid, template valid, G/VT quota 0 → CPU path m7i-flex.large). Next: owner creates the two pre-created roles (`deploy/iam/README.md` Step 2), approves push + deployment.
 2. Check Billing → Credits for EC2 GPU/Bedrock eligibility, and request the G/VT quota (≥ 4 vCPU) if it is 0.
 3. Approve: (a) the deployment path and cost, (b) publishing the GitHub repo (and which author email to keep public), (c) uploading the video, (d) publishing the article.
 4. Close memory-heavy apps before recording (IntelliJ, browser tabs): the laptop had 1–2 GB free RAM during runs.

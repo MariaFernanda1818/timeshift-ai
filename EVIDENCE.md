@@ -199,3 +199,24 @@ Decider restarted with `OMP_NUM_THREADS=MKL_NUM_THREADS=TORCH_NUM_THREADS=2` on 
 2-vCPU m7i-flex.large. One eval2 gate call (F03, ~1,300 tokens) took **69.2 s**, against ~41 s with all
 cores. The answer was identical (0.8328, REVIEW). Free RAM was 0.4–1.9 GB. A laptop core is not an EC2 vCPU,
 so this must be re-measured on the instance. Implication: ~3.5 min per full agent run (3 gate calls).
+
+## AWS readiness with the restricted identity (2026-10-22) [measured, read-only]
+
+`python scripts/aws_readiness.py --profile timeshift-dev` → `bench/results/aws_readiness.json` (account ID masked).
+Identity `arn:aws:iam::<ACCOUNT>:user/timeshift-dev` (not root, no long-term keys, `aws login`).
+
+| Check | Result |
+|---|---|
+| Bedrock, real minimal invocation | PASS: Claude Haiku 4.5 replied "OK", request `ae3a1d3c-bdb0-4c80-8b4e-19d4bb5a99e8` |
+| G/VT vCPU quota (L-DB2E81BA) | **0** → GPU path not possible without a quota increase (and likely the paid plan) |
+| Standard vCPU quota (L-1216C47A) | 16 → m7i-flex.large (2 vCPU) fits |
+| m7i-flex.large offering | us-east-1a/b/c/d/f |
+| On-demand Linux prices (AWS Pricing API) | m7i-flex.large $0.0958/h · c7i.2xlarge $0.3570/h · g6.xlarge $0.8048/h · g5.xlarge $1.0060/h |
+| AMIs (SSM public parameters) | CPU `ami-033ea4ff4a9c726dc` (ubuntu-jammy-22.04-amd64-server-20261021, x86_64) · GPU `ami-07ab2d4b1490816c3` |
+| Default VPC | `vpc-05011ecfb31e6ab48`. Default subnets in 6 AZs, public IP on launch |
+| IAM Access Analyzer `ValidatePolicy` (5 documents) | **no findings** for all five |
+| `cloudformation validate-template` | valid; required capabilities: **none** (template creates no IAM resources) |
+| Pre-created roles | not yet created (owner step) |
+
+Not verifiable through APIs: whether the Free plan allows launching m7i-flex.large (third-party lists say
+yes), and credit eligibility. Both need an owner console check.
