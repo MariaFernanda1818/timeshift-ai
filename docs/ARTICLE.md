@@ -2,8 +2,8 @@
 
 `#strands-decider-2b` `#guardrails`
 
-> **Draft.** Items marked ⟨PENDING⟩ are filled only from real measurements (AWS deployment,
-> GPU latency, the pre-registered held-out cascade evaluation). Nothing here is extrapolated.
+> Every number here is a real measurement (see `EVIDENCE.md` in the repository). What we did not
+> measure (GPU latency, the live confirmatory cascade) is stated as not measured. Nothing is extrapolated.
 
 **TL;DR.** TIME//SHIFT forks a simulated lunar base into alternative futures before acting, then
 gates every future with a typed evidence check. Our most useful finding was not that a small
@@ -155,7 +155,7 @@ its band chosen on the calibration split. Decider settled 12 of 21 semantic case
 That is a small sample, and both the band and this evaluation came from the same benchmark design,
 so we treated it as a hypothesis to confirm.
 
-**The cascade (D), confirmatory ⟨PENDING⟩.** We wrote 30 *new* cases with labels and committed them
+**The cascade (D), confirmatory (Decider stage only).** We wrote 30 *new* cases with labels and committed them
 before any model ran (`bench/cases_eval2.py`). The band is frozen at [0.68, 0.90), and D runs
 **live**, with real Decider and real Bedrock calls inside the gate. We report wrong commits (risk),
 wrong blocks, human reviews (split by what the reviewer would face), coverage, covered accuracy,
@@ -172,7 +172,8 @@ First confirmatory result, Decider stage only (measured):
 wrong commits; on fresh cases, four should-block actions scored 0.901–0.911, just above it. Because
 those land above the escalation band, **the cascade cannot catch them either**. Before running D we
 wrote down its bounds: 9 escalations, at least 4 wrong commits, at most 26/30 correct.
-⟨PENDING: live D and B on eval2⟩
+We did not run live B and D on eval2 before the deadline, so the confirmatory result is the Decider
+stage above plus these pre-written bounds.
 
 This is the most important caveat in this article. A small decision model's confidence on
 *real-evidence-but-wrong* actions sits right on top of its confidence for good actions, so no
@@ -185,7 +186,8 @@ on the held-out set.
 
 **Latency and footprint:** on CPU, Decider took 6.1 GB of RAM and a median of 32 s per gate call
 (~1,300-token states), or 8.6 s for ~200 tokens. The upstream project reports ~115 ms on an RTX
-3090. We have not measured GPU latency yet. ⟨PENDING: g6.xlarge⟩
+3090. Our account's GPU quota was 0, so we did not measure GPU latency. On the 2-vCPU EC2 instance,
+warm gate calls took 34–37 s and the first (cold) call 182 s (see "CPU vs cloud").
 
 **End-to-end agent:** each run used about 12–13k Bedrock tokens and 3 tool calls (telemetry →
 fork → commit), took ~2 minutes on CPU (three Decider calls), and produced the same safety outcome
@@ -260,6 +262,6 @@ not appear in the simulation packet. We count that as the safeguard working, not
 
 ## Links
 
-Repository: ⟨PENDING⟩ · Demo video: ⟨PENDING⟩ · Reusable pattern: `reusable-patterns/counterfactual-decision-gate`
+Repository: https://github.com/MariaFernanda1818/timeshift-ai · Demo video: ⟨VIDEO URL⟩ · Reusable pattern: `reusable-patterns/counterfactual-decision-gate`
 
 *Explore possible futures. Verify decisions. Change the outcome.*

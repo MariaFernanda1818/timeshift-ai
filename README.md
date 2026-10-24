@@ -53,7 +53,7 @@ this as measured. The cascade (D) is now an optional mode (`TIMESHIFT_ESCALATION
 **Confirmatory check (pre-registered eval2, 30 new cases):** with the frozen 0.90 threshold,
 Decider let **4** unsupported actions through (scores 0.901–0.911), had 3 wrong blocks and sent 13 to
 human review. The D = 1.000 above is exploratory and did **not** carry over to Decider's stage on
-new data. Live B and D on eval2 are pending (Bedrock dev identity). See [EVIDENCE.md](EVIDENCE.md).
+new data. Live B and D on eval2 were not run. See [EVIDENCE.md](EVIDENCE.md).
 
 ## How it works
 
@@ -116,7 +116,8 @@ Configuration: see [.env.example](.env.example). `DECIDER_PROCEED_AT` sets the P
 Decider's review band to the Bedrock judge; a Decider failure still denies.
 
 On CPU each gate call takes ~30–45 s for ~1,300-token states (i5-1235U). See
-[docs/AWS_DEPLOYMENT.md](docs/AWS_DEPLOYMENT.md) for the GPU deployment plan (not yet provisioned).
+[docs/AWS_DEPLOYMENT.md](docs/AWS_DEPLOYMENT.md) for the deployment. The CPU path (m7i-flex.large) was
+deployed and ran a real mission (see EVIDENCE.md); the GPU path was not provisioned (GPU quota 0).
 
 ## Honesty notes
 
