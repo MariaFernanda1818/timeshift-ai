@@ -262,6 +262,6 @@ not appear in the simulation packet. We count that as the safeguard working, not
 
 ## Links
 
-Repository: https://github.com/MariaFernanda1818/timeshift-ai · Demo video: ⟨VIDEO URL⟩ · Reusable pattern: `reusable-patterns/counterfactual-decision-gate`
+Repository: https://github.com/MariaFernanda1818/timeshift-ai · Demo video: https://youtu.be/xkxPSzNtZpw · Reusable pattern: `reusable-patterns/counterfactual-decision-gate`
 
 *Explore possible futures. Verify decisions. Change the outcome.*
